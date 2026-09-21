@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Car, LogOut, UserCircle, Users } from 'lucide-react'
+import { Building2, CalendarDays, Car, LogOut, UserCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AppLogo } from '@/components/brand/app-logo'
 import { UserAvatar } from '@/components/user-avatar'
@@ -23,6 +23,9 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
+/** Shared height for sidebar brand row and main breadcrumb bar */
+const APP_TOPBAR_CLASS = 'h-16 shrink-0'
+
 export function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -36,10 +39,12 @@ export function AppLayout() {
           collapsible="icon"
           className="border-sidebar-border group-data-[side=left]:border-r"
         >
-          <SidebarHeader className="h-14 border-b border-sidebar-border">
-            <div className="flex items-center gap-2 px-2 py-2">
-              <AppLogo className="size-9 shrink-0" />
-              <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
+          <SidebarHeader
+            className={`${APP_TOPBAR_CLASS} sticky top-0 z-20 gap-0 border-b border-sidebar-border bg-sidebar p-0`}
+          >
+            <div className={`flex ${APP_TOPBAR_CLASS} w-full items-center gap-2 px-3`}>
+              <AppLogo className="size-8 shrink-0" />
+              <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate text-sm font-semibold">Service Desk</span>
                 <span className="truncate text-xs text-muted-foreground">Dealership API</span>
               </div>
@@ -61,17 +66,12 @@ export function AppLayout() {
                     </NavItem>
                   )}
                   {staff && (
-                    <>
-                      <NavItem to="/customers" tooltip="Customer directory">
-                        <Users />
-                        <span>Customers</span>
-                      </NavItem>
-                      <NavItem to="/dealerships" tooltip="My dealership">
-                        <Building2 />
-                        <span>My dealership</span>
-                      </NavItem>
-                    </>
+                    <NavItem to="/dealerships" tooltip="My dealership">
+                      <Building2 />
+                      <span>My dealership</span>
+                    </NavItem>
                   )}
+                  {/* Customer directory UI removed — /customers redirects to appointments. */}
                   <NavItem to="/profile" tooltip="Your profile">
                     <UserCircle />
                     <span>Profile</span>
@@ -122,8 +122,10 @@ export function AppLayout() {
             </div>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="max-w-full min-h-0 min-w-0 flex flex-1 flex-col overflow-x-auto overflow-y-hidden bg-background">
-          <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center gap-2 border-b border-border bg-background px-4">
+        <SidebarInset className="max-w-full min-h-0 min-w-0 flex h-svh flex-1 flex-col overflow-hidden bg-background">
+          <header
+            className={`sticky top-0 z-50 flex ${APP_TOPBAR_CLASS} w-full items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80`}
+          >
             <SidebarTrigger className="-ml-1 shrink-0" />
             <Separator orientation="vertical" className="mx-2 h-8 shrink-0" />
             <PageHeader />

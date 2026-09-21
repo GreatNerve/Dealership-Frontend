@@ -10,7 +10,6 @@ import { RegisterCustomerPage } from '@/pages/register-customer'
 import { RegisterDealershipPage } from '@/pages/register-dealership'
 import { AppointmentsPage } from '@/pages/appointments'
 import { AppointmentDetailPage } from '@/pages/appointment-detail'
-import { CustomersPage } from '@/pages/customers'
 import { DealershipsPage } from '@/pages/dealerships'
 import { VehiclesPage } from '@/pages/vehicles'
 import { ProfilePage } from '@/pages/profile'
@@ -49,7 +48,7 @@ export function AppRouter() {
               <Route path="/" element={<Navigate to="/appointments" replace />} />
               <Route path="/appointments" element={<AppointmentsPage />} />
               <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
-              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/customers" element={<Navigate to="/appointments" replace />} />
               <Route path="/dealerships" element={<DealershipsPage />} />
               <Route path="/vehicles" element={<VehiclesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
