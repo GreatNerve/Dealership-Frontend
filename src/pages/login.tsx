@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { formPlaceholders } from '@/lib/form-placeholders'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -52,6 +53,7 @@ export function LoginPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder={formPlaceholders.email}
               required
             />
           </Field>
@@ -63,6 +65,7 @@ export function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder={formPlaceholders.passwordSignIn}
               required
             />
           </Field>

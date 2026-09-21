@@ -17,6 +17,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { formPlaceholders } from '@/lib/form-placeholders'
 
 type Props = {
   open: boolean
@@ -68,7 +69,7 @@ export function AddDealershipDialog({ open, onOpenChange }: Props) {
                 id="dealer-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Great Nerve Service"
+                placeholder={formPlaceholders.dealershipName}
               />
             </Field>
             <Field>
@@ -77,6 +78,7 @@ export function AddDealershipDialog({ open, onOpenChange }: Props) {
                 id="dealer-address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
+                placeholder={formPlaceholders.streetAddress}
               />
             </Field>
           </FieldGroup>

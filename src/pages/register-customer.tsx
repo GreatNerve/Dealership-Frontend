@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { formPlaceholders } from '@/lib/form-placeholders'
 
 export function RegisterCustomerPage() {
   const { register } = useAuth()
@@ -57,7 +58,7 @@ export function RegisterCustomerPage() {
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Optional"
+              placeholder={formPlaceholders.customerName}
             />
           </Field>
           <Field>
@@ -68,6 +69,7 @@ export function RegisterCustomerPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder={formPlaceholders.email}
               required
             />
           </Field>
@@ -80,6 +82,7 @@ export function RegisterCustomerPage() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder={formPlaceholders.passwordNew}
               required
             />
           </Field>

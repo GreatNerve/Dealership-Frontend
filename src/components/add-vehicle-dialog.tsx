@@ -15,6 +15,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { formPlaceholders } from '@/lib/form-placeholders'
 
 type Props = {
   open: boolean
@@ -71,7 +72,7 @@ export function AddVehicleDialog({ open, onOpenChange, onAdded }: Props) {
                 id="plate"
                 value={registrationNumber}
                 onChange={(e) => setRegistrationNumber(e.target.value)}
-                placeholder="KA01AB1234"
+                placeholder={formPlaceholders.vehiclePlate}
                 autoComplete="off"
               />
             </Field>
@@ -81,7 +82,7 @@ export function AddVehicleDialog({ open, onOpenChange, onAdded }: Props) {
                 id="make"
                 value={make}
                 onChange={(e) => setMake(e.target.value)}
-                placeholder="Honda"
+                placeholder={formPlaceholders.vehicleMake}
               />
             </Field>
             <Field>
@@ -90,7 +91,7 @@ export function AddVehicleDialog({ open, onOpenChange, onAdded }: Props) {
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="Civic"
+                placeholder={formPlaceholders.vehicleModel}
               />
             </Field>
             <Field>
@@ -102,6 +103,7 @@ export function AddVehicleDialog({ open, onOpenChange, onAdded }: Props) {
                 max={2100}
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
+                placeholder={formPlaceholders.vehicleYear}
               />
             </Field>
           </FieldGroup>

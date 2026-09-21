@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { formPlaceholders } from '@/lib/form-placeholders'
 
 export function RegisterDealershipPage() {
   const { register, reloadUser } = useAuth()
@@ -73,7 +74,7 @@ export function RegisterDealershipPage() {
               id="dealer-name"
               value={dealershipName}
               onChange={(e) => setDealershipName(e.target.value)}
-              placeholder="Great Nerve Service"
+              placeholder={formPlaceholders.dealershipName}
               autoComplete="organization"
               required
             />
@@ -87,6 +88,7 @@ export function RegisterDealershipPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder={formPlaceholders.workEmail}
               required
             />
           </Field>
@@ -100,6 +102,7 @@ export function RegisterDealershipPage() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder={formPlaceholders.passwordNew}
               required
             />
             <p className="text-xs text-muted-foreground">At least 8 characters.</p>
@@ -111,15 +114,11 @@ export function RegisterDealershipPage() {
               id="dealer-address"
               value={dealershipAddress}
               onChange={(e) => setDealershipAddress(e.target.value)}
-              placeholder="Street, city, state, postal code"
+              placeholder={formPlaceholders.streetAddress}
               autoComplete="street-address"
               required
             />
           </Field>
-
-          <p className="text-xs text-muted-foreground">
-            Shop timezone is detected automatically ({shopTz}).
-          </p>
 
           <Button type="submit" className="mt-1 w-full" disabled={pending || !valid}>
             {pending ? <Spinner data-icon="inline-start" /> : null}

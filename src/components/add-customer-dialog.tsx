@@ -15,6 +15,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { formPlaceholders } from '@/lib/form-placeholders'
 
 type Props = {
   open: boolean
@@ -67,6 +68,7 @@ export function AddCustomerDialog({ open, onOpenChange }: Props) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder={formPlaceholders.email}
                 autoComplete="off"
               />
             </Field>
@@ -76,6 +78,7 @@ export function AddCustomerDialog({ open, onOpenChange }: Props) {
                 id="cust-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                placeholder={formPlaceholders.customerName}
               />
             </Field>
             <Field>
@@ -86,6 +89,7 @@ export function AddCustomerDialog({ open, onOpenChange }: Props) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={8}
+                placeholder={formPlaceholders.passwordNew}
                 autoComplete="new-password"
               />
             </Field>

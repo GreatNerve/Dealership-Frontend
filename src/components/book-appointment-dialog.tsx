@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import { AddVehicleDialog } from '@/components/add-vehicle-dialog'
 import { apiPost } from '@/lib/api'
 import { dealershipLabel, dealershipSubline, vehicleLabel } from '@/lib/labels'
 import { datetimeLocalToApiOffset, defaultDatetimeLocal } from '@/lib/schedule'
@@ -28,6 +28,13 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
+function mergeVehicles(base: Vehicle[], extra: Vehicle[]): Vehicle[] {
+  const byId = new Map<string, Vehicle>()
+  for (const v of base) byId.set(v.id, v)
+  for (const v of extra) byId.set(v.id, v)
+  return [...byId.values()]
+}
+
 export function BookAppointmentDialog({
   customer,
   dealerships,
@@ -36,17 +43,24 @@ export function BookAppointmentDialog({
   onOpenChange,
 }: Props) {
   const qc = useQueryClient()
+  const [addedVehicles, setAddedVehicles] = useState<Vehicle[]>([])
+  const [addVehicleOpen, setAddVehicleOpen] = useState(false)
   const [vehicleId, setVehicleId] = useState('')
   const [dealershipId, setDealershipId] = useState('')
   const [scheduledLocal, setScheduledLocal] = useState('')
 
+  const bookingVehicles = useMemo(
+    () => mergeVehicles(customer.vehicles, addedVehicles),
+    [customer.vehicles, addedVehicles],
+  )
+
   const vehicleOptions = useMemo(
     () =>
-      customer.vehicles.map((v) => ({
+      bookingVehicles.map((v) => ({
         value: v.id,
         label: vehicleLabel(v),
       })),
-    [customer.vehicles],
+    [bookingVehicles],
   )
 
   const dealershipOptions = useMemo(
@@ -61,16 +75,19 @@ export function BookAppointmentDialog({
 
   useEffect(() => {
     if (!open) return
+    setAddedVehicles([])
+    setAddVehicleOpen(false)
     setVehicleId(customer.vehicles[0]?.id ?? '')
     setDealershipId(defaultDealershipId ?? dealerships[0]?.id ?? '')
     setScheduledLocal(defaultDatetimeLocal(24))
-  }, [open, customer, dealerships, defaultDealershipId])
+  }, [open, customer.vehicles, defaultDealershipId, dealerships])
 
   useEffect(() => {
-    if (!customer.vehicles.some((v) => v.id === vehicleId)) {
-      setVehicleId(customer.vehicles[0]?.id ?? '')
+    if (!open) return
+    if (!bookingVehicles.some((v) => v.id === vehicleId)) {
+      setVehicleId(bookingVehicles[0]?.id ?? '')
     }
-  }, [customer.vehicles, vehicleId])
+  }, [open, bookingVehicles, vehicleId])
 
   const book = useMutation({
     mutationFn: () => {
@@ -95,13 +112,17 @@ export function BookAppointmentDialog({
     onError: (e: Error) => toast.error(e.message),
   })
 
+  const noVehicles = vehicleOptions.length === 0
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
         <DialogHeader className="gap-1 border-b border-border px-6 pt-6 pb-4 pr-12">
           <DialogTitle className="text-lg">Create appointment</DialogTitle>
           <DialogDescription>
-            Choose your vehicle, dealership, and service time.
+            {noVehicles
+              ? 'Add a vehicle, then choose dealership and service time.'
+              : 'Choose your vehicle, dealership, and service time.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -109,27 +130,39 @@ export function BookAppointmentDialog({
           <FieldGroup className="gap-4">
             <Field>
               <FieldLabel>Vehicle</FieldLabel>
-              <SearchableCombobox
-                options={vehicleOptions}
-                value={vehicleId}
-                onValueChange={setVehicleId}
-                placeholder="Choose vehicle"
-                searchPlaceholder="Search plate…"
-                emptyText="No vehicles yet."
-                disabled={vehicleOptions.length === 0}
-              />
-              {vehicleOptions.length === 0 && (
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  No vehicles yet.{' '}
-                  <Link
-                    to="/vehicles"
-                    className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/90"
-                    onClick={() => onOpenChange(false)}
+              {noVehicles ? (
+                <div className="space-y-3 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-4">
+                  <p className="text-sm text-muted-foreground">
+                    You do not have a vehicle on your profile yet.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setAddVehicleOpen(true)}
                   >
-                    Add a vehicle
-                  </Link>{' '}
-                  on My vehicles, then book again.
-                </p>
+                    Add vehicle
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <SearchableCombobox
+                    options={vehicleOptions}
+                    value={vehicleId}
+                    onValueChange={setVehicleId}
+                    placeholder="Choose vehicle"
+                    searchPlaceholder="Search plate…"
+                    emptyText="No vehicles found."
+                  />
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto px-0 text-xs text-muted-foreground"
+                    onClick={() => setAddVehicleOpen(true)}
+                  >
+                    Add another vehicle
+                  </Button>
+                </>
               )}
             </Field>
 
@@ -175,6 +208,17 @@ export function BookAppointmentDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AddVehicleDialog
+        open={addVehicleOpen}
+        onOpenChange={setAddVehicleOpen}
+        onAdded={(vehicle) => {
+          setAddedVehicles((prev) => mergeVehicles(prev, [vehicle]))
+          setVehicleId(vehicle.id)
+          qc.invalidateQueries({ queryKey: ['vehicles', 'book'] })
+          qc.invalidateQueries({ queryKey: ['vehicles'] })
+        }}
+      />
     </Dialog>
   )
 }

@@ -5,6 +5,7 @@ const labels: Record<string, string> = {
   customers: 'Customers',
   dealerships: 'My dealership',
   vehicles: 'My vehicles',
+  profile: 'Profile',
 }
 
 export function PageHeader() {

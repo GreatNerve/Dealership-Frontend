@@ -13,6 +13,7 @@ import { AppointmentDetailPage } from '@/pages/appointment-detail'
 import { CustomersPage } from '@/pages/customers'
 import { DealershipsPage } from '@/pages/dealerships'
 import { VehiclesPage } from '@/pages/vehicles'
+import { ProfilePage } from '@/pages/profile'
 import { Spinner } from '@/components/ui/spinner'
 
 const qc = new QueryClient({
@@ -51,6 +52,7 @@ export function AppRouter() {
               <Route path="/customers" element={<CustomersPage />} />
               <Route path="/dealerships" element={<DealershipsPage />} />
               <Route path="/vehicles" element={<VehiclesPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/appointments" replace />} />
           </Routes>

@@ -17,7 +17,7 @@ npm run dev
 
 Open `http://localhost:5173`. Vite proxies `/api` to port 8080.
 
-Auth: `/login`, `/register` (chooser), `/register/customer`, `/register/dealership` (shop name/address/timezone + `POST /dealerships`). HTTP client is **axios** with unwrap of the backend `ApiResponse.data` envelope. **Customers** book (using vehicles from **My vehicles**), reschedule, and cancel appointments. **Staff** manage the **Customers** directory (search, add customer), handle **appointments** (reschedule/cancel, reminders, mark complete), and view **My dealership** only — staff do not book for customers or add vehicles on their behalf.
+Auth: `/login`, `/register` (chooser), `/register/customer`, `/register/dealership` (shop name/address/timezone + `POST /dealerships`). Signed-in users open **Profile** (`/profile`, `GET /api/v1/me`) for account, customer, or home dealership details. HTTP client is **axios** with unwrap of the backend `ApiResponse.data` envelope. **Customers** book (pick a vehicle or add one in the create dialog), reschedule, and cancel appointments; **My vehicles** is still available for managing the list. **Staff** manage the **Customers** directory (search, add customer), handle **appointments** (reschedule/cancel, reminders, mark complete), and view **My dealership** only — staff do not book for customers or add vehicles on their behalf.
 
 Optional: set `VITE_API_BASE` in `.env` if the API is on another host (then configure CORS on the backend).
 

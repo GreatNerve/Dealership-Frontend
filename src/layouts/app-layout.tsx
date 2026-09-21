@@ -1,4 +1,5 @@
-import { Building2, CalendarDays, Car, LogOut, Users } from 'lucide-react'
+import { Building2, CalendarDays, Car, LogOut, UserCircle, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { AppLogo } from '@/components/brand/app-logo'
 import { UserAvatar } from '@/components/user-avatar'
 import { Outlet, useNavigate } from 'react-router-dom'
@@ -71,6 +72,10 @@ export function AppLayout() {
                       </NavItem>
                     </>
                   )}
+                  <NavItem to="/profile" tooltip="Your profile">
+                    <UserCircle />
+                    <span>Profile</span>
+                  </NavItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -78,21 +83,30 @@ export function AppLayout() {
           <SidebarFooter className="border-t border-sidebar-border">
             <div className="flex items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center">
               {user ? (
-                <UserAvatar
-                  seed={user.id}
-                  size={36}
-                  className="size-9"
-                  alt={user.name?.trim() || user.email}
-                />
+                <Link
+                  to="/profile"
+                  className="shrink-0 rounded-lg ring-offset-background transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  title="Your profile"
+                >
+                  <UserAvatar
+                    seed={user.id}
+                    size={36}
+                    className="size-9"
+                    alt={user.name?.trim() || user.email}
+                  />
+                </Link>
               ) : (
                 <div className="size-9 shrink-0 rounded-lg bg-muted ring-1 ring-border" aria-hidden />
               )}
-              <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+              <Link
+                to="/profile"
+                className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
+              >
                 <p className="truncate text-sm font-medium">{user?.name?.trim() || 'Signed in'}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {staff ? 'Dealership staff' : 'Customer'}
                 </p>
-              </div>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon-sm"
