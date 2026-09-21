@@ -267,7 +267,7 @@ export function AppointmentDetailPage() {
     ? `${a.vehicle.year} ${a.vehicle.make} ${a.vehicle.model}`
     : null
   const pageTitle = vehicleLine ?? plate ?? 'Service visit'
-  const customerEmail = customerContactEmail(a.customer)
+  const customerEmail = staff ? customerContactEmail(a.customer) : null
 
   return (
     <PageShell
@@ -305,23 +305,30 @@ export function AppointmentDetailPage() {
     >
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="grid min-w-0 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x [&>div]:min-w-0">
-            <HeroFact
-              lead={
-                <UserAvatar
-                  seed={a.customerId}
-                  size={36}
-                  className="size-9"
-                  alt={customerDisplayName(a.customer)}
-                />
-              }
-              label="Customer"
-            >
-              <p className="truncate font-medium">{customerDisplayName(a.customer)}</p>
-              {customerEmail ? (
-                <p className="mt-0.5 break-all text-xs text-muted-foreground">{customerEmail}</p>
-              ) : null}
-            </HeroFact>
+          <div
+            className={cn(
+              'grid min-w-0 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:divide-x [&>div]:min-w-0',
+              staff ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
+            )}
+          >
+            {staff ? (
+              <HeroFact
+                lead={
+                  <UserAvatar
+                    seed={a.customerId}
+                    size={36}
+                    className="size-9"
+                    alt={customerDisplayName(a.customer)}
+                  />
+                }
+                label="Customer"
+              >
+                <p className="truncate font-medium">{customerDisplayName(a.customer)}</p>
+                {customerEmail ? (
+                  <p className="mt-0.5 break-all text-xs text-muted-foreground">{customerEmail}</p>
+                ) : null}
+              </HeroFact>
+            ) : null}
             <HeroFact icon={<Car className="size-4" />} label="Vehicle">
               <p className="font-mono font-medium">{plate ?? '—'}</p>
               {vehicleLine ? <p className="mt-0.5 text-muted-foreground">{vehicleLine}</p> : null}
@@ -370,8 +377,10 @@ export function AppointmentDetailPage() {
             </DetailPanel>
           ) : (
             <DetailPanel title="Visit summary">
-              <DetailField label="Status">
-                <AppointmentStatusBadge status={normalizeStatus(a.status)} />
+              <DetailField label="Vehicle">
+                {a.vehicle
+                  ? `${a.vehicle.registrationNumber} · ${a.vehicle.year} ${a.vehicle.make} ${a.vehicle.model}`
+                  : '—'}
               </DetailField>
               <DetailField label="Visit time">
                 <span className="font-medium tabular-nums text-foreground">{when}</span>
@@ -381,10 +390,8 @@ export function AppointmentDetailPage() {
               <DetailField label="Address">
                 <span className="text-muted-foreground">{location?.address ?? '—'}</span>
               </DetailField>
-              <DetailField label="Vehicle">
-                {a.vehicle
-                  ? `${a.vehicle.registrationNumber} · ${a.vehicle.year} ${a.vehicle.make} ${a.vehicle.model}`
-                  : '—'}
+              <DetailField label="Status">
+                <AppointmentStatusBadge status={normalizeStatus(a.status)} />
               </DetailField>
             </DetailPanel>
           )}

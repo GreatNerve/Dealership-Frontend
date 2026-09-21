@@ -72,14 +72,18 @@ export function AppointmentsPage() {
       <ServerDataTable
         queryKey="appointments"
         path="/api/v1/appointments"
-        columns={appointmentColumns({ omitDealership: staff })}
-        searchPlaceholder="Search plate or customer"
+        columns={appointmentColumns({ omitDealership: staff, omitCustomer: !staff })}
+        searchPlaceholder={staff ? 'Search plate or customer' : 'Search plate'}
         emptyMessage="No appointments found."
         initialPageSize={10}
         onRowClick={(row) => navigate(`/appointments/${row.id}`)}
         getRowId={(row) => row.id}
         renderMobileCard={(row) => (
-          <AppointmentMobileCard appointment={row} showDealership={!staff} />
+          <AppointmentMobileCard
+            appointment={row}
+            showDealership={!staff}
+            showCustomer={staff}
+          />
         )}
       />
 

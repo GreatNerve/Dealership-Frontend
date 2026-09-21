@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchMe } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import { customerContactEmail, customerDisplayName } from '@/lib/labels'
 import { UserAvatar } from '@/components/user-avatar'
 import { DetailField, DetailPanel } from '@/components/layout/detail-field'
 import { PageShell } from '@/components/layout/page-shell'
@@ -57,10 +56,7 @@ export function ProfilePage() {
     return null
   }
 
-  const displayName = staff
-    ? user.name?.trim() || user.email
-    : user.name?.trim() || customerDisplayName(user.customer) || user.email
-  const customerEmail = customerContactEmail(user.customer) ?? user.email
+  const displayName = user.name?.trim() || user.email
 
   return (
     <PageShell
@@ -136,15 +132,6 @@ export function ProfilePage() {
             </DetailField>
           ) : null}
         </DetailPanel>
-
-        {!staff && user.customerId && (
-          <DetailPanel title="Booking contact">
-            <DetailField label="Contact">
-              <span className="break-all">{user.customer?.contact ?? customerEmail}</span>
-            </DetailField>
-            <DetailField label="Name on file">{customerDisplayName(user.customer)}</DetailField>
-          </DetailPanel>
-        )}
 
         <div className="flex flex-wrap gap-2">
           <Button

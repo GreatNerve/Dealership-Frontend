@@ -21,6 +21,8 @@ function normalizeStatus(status: string): AppointmentStatus {
 
 export function appointmentColumns(options?: {
   omitDealership?: boolean
+  /** Customer list: all visits are theirs — hide the Customer column. */
+  omitCustomer?: boolean
 }): ColumnDef<Appointment, unknown>[] {
   const cols: ColumnDef<Appointment, unknown>[] = [
   {
@@ -104,8 +106,12 @@ export function appointmentColumns(options?: {
   },
   ]
 
+  let visible = cols
   if (options?.omitDealership) {
-    return cols.filter((c) => c.id !== 'dealership')
+    visible = visible.filter((c) => c.id !== 'dealership')
   }
-  return cols
+  if (options?.omitCustomer) {
+    visible = visible.filter((c) => c.id !== 'customer')
+  }
+  return visible
 }

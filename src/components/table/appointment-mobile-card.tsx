@@ -21,24 +21,35 @@ function normalizeStatus(status: string): AppointmentStatus {
 type Props = {
   appointment: Appointment
   showDealership?: boolean
+  showCustomer?: boolean
 }
 
-export function AppointmentMobileCard({ appointment, showDealership = true }: Props) {
+export function AppointmentMobileCard({
+  appointment,
+  showDealership = true,
+  showCustomer = true,
+}: Props) {
   const plate =
     appointment.vehicle?.registrationNumber ?? appointment.vehicleId.slice(0, 8)
+  const vehicleLine = appointment.vehicle
+    ? `${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model}`
+    : null
   const when = formatAppointmentScheduled(
     appointment.scheduledAt,
     appointment.scheduledAtLocal,
   )
+  const subtitle = showCustomer
+    ? customerDisplayName(appointment.customer)
+    : vehicleLine
 
   return (
     <Card size="sm" className="shadow-sm transition-colors hover:bg-muted/30">
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
         <div className="min-w-0">
           <CardTitle className="truncate text-base font-mono">{plate}</CardTitle>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {customerDisplayName(appointment.customer)}
-          </p>
+          {subtitle ? (
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">{subtitle}</p>
+          ) : null}
         </div>
         <AppointmentStatusBadge status={normalizeStatus(appointment.status)} />
       </CardHeader>
