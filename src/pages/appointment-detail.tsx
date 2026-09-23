@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Building2, CalendarClock, Car } from 'lucide-react'
 import { UserAvatar } from '@/components/user-avatar'
 import { Link, useParams } from 'react-router-dom'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { apiGet, apiPost, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -27,7 +27,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { apiToDatetimeLocal, datetimeLocalToApiOffset } from '@/lib/schedule'
+import {
+  apiToDatetimeLocal,
+  datetimeLocalSameInstant,
+  datetimeLocalToApiOffset,
+  isFutureDatetimeLocal,
+} from '@/lib/schedule'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from 'cn'
 
@@ -174,9 +179,13 @@ export function AppointmentDetailPage() {
   })
 
   useEffect(() => {
-    if (!appt.data) return
-    const seed = appt.data.scheduledAtLocal || appt.data.scheduledAt
-    setRescheduleLocal(apiToDatetimeLocal(seed))
+    // Leave empty until the user picks a new future time (same Instant is rejected by API).
+    setRescheduleLocal('')
+  }, [appt.data?.id])
+
+  const currentVisitLocal = useMemo(() => {
+    if (!appt.data) return ''
+    return apiToDatetimeLocal(appt.data.scheduledAtLocal || appt.data.scheduledAt)
   }, [appt.data])
 
   const cancel = useMutation({
@@ -218,6 +227,11 @@ export function AppointmentDetailPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   })
+
+  const canSubmitReschedule =
+    !!rescheduleLocal &&
+    isFutureDatetimeLocal(rescheduleLocal) &&
+    !datetimeLocalSameInstant(rescheduleLocal, currentVisitLocal)
 
   const replayNotification = useMutation({
     mutationFn: (notificationId: string) => {
@@ -413,6 +427,7 @@ export function AppointmentDetailPage() {
                   id="reschedule"
                   value={rescheduleLocal}
                   onChange={setRescheduleLocal}
+                  disablePast
                 />
                 <div className="flex flex-col gap-2">
                   {staff ? (
@@ -428,7 +443,7 @@ export function AppointmentDetailPage() {
                   <Button
                     className="w-full"
                     variant={staff ? 'outline' : 'default'}
-                    disabled={!rescheduleLocal || reschedule.isPending}
+                    disabled={!canSubmitReschedule || reschedule.isPending}
                     onClick={() => reschedule.mutate()}
                   >
                     {reschedule.isPending ? <Spinner data-icon="inline-start" /> : null}

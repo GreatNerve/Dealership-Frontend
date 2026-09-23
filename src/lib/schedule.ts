@@ -57,3 +57,19 @@ export function timezoneLabel(): string {
     return 'local time'
   }
 }
+
+/** True when datetime-local value parses to a time strictly after now. */
+export function isFutureDatetimeLocal(value: string, nowMs = Date.now()): boolean {
+  if (!value) return false
+  const t = new Date(value).getTime()
+  return !Number.isNaN(t) && t > nowMs
+}
+
+/** Same wall-clock Instant (minute precision) for datetime-local strings. */
+export function datetimeLocalSameInstant(a: string, b: string): boolean {
+  if (!a || !b) return false
+  const ta = new Date(a).getTime()
+  const tb = new Date(b).getTime()
+  if (Number.isNaN(ta) || Number.isNaN(tb)) return false
+  return Math.floor(ta / 60_000) === Math.floor(tb / 60_000)
+}

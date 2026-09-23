@@ -22,6 +22,8 @@ type Props = {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  /** Block calendar days before today (local). */
+  disablePast?: boolean
 }
 
 const DISPLAY_FORMAT = DISPLAY_DATETIME_FORMAT.replace(' a', ' aa')
@@ -65,6 +67,7 @@ export function DateTimePickerField({
   value,
   onChange,
   disabled,
+  disablePast = false,
 }: Props) {
   const [open, setOpen] = useState(false)
   const selected = useMemo(() => fromDatetimeLocal(value), [value])
@@ -87,6 +90,11 @@ export function DateTimePickerField({
 
   const display = selected ? format(selected, DISPLAY_FORMAT) : 'Pick date and time'
   const preview = draft ? format(draft, DISPLAY_FORMAT.replace(' a', ' aa')) : 'Pick a date and time'
+  const startOfToday = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
 
   return (
     <Field>
@@ -117,6 +125,7 @@ export function DateTimePickerField({
               month={month}
               onMonthChange={setMonth}
               captionLayout="dropdown"
+              disabled={disablePast ? { before: startOfToday } : undefined}
               classNames={{
                 today:
                   'rounded-md bg-transparent font-medium text-foreground ring-1 ring-border',
