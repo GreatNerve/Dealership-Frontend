@@ -1,4 +1,4 @@
-import type { QueryClient } from '@tanstack/react-query'
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
 import { apiGet } from '@/lib/api'
 import type {
   Appointment,
@@ -25,39 +25,47 @@ export async function loadAppointmentMails(appointmentId: string) {
   return { ...page, items }
 }
 
-/** Hover Create appointment — warm vehicles + dealerships. */
-export function prefetchBookSources(qc: QueryClient) {
-  void qc.prefetchQuery({
-    queryKey: ['vehicles', 'book'],
-    queryFn: () => apiGet<Page<Vehicle>>('/api/v1/vehicles', { size: 100 }),
-  })
-  void qc.prefetchQuery({
-    queryKey: ['dealerships'],
-    queryFn: () => apiGet<Page<Dealership>>('/api/v1/dealerships', { size: 100 }),
+/** Drop failed prefetch so a 429 does not poison the next navigation. */
+function softPrefetch<T>(
+  qc: QueryClient,
+  queryKey: QueryKey,
+  queryFn: () => Promise<T>,
+) {
+  if (qc.getQueryData(queryKey) != null) return
+  const state = qc.getQueryState(queryKey)
+  if (state?.fetchStatus === 'fetching') return
+  void qc.prefetchQuery({ queryKey, queryFn }).catch(() => {
+    qc.removeQueries({ queryKey, exact: true })
   })
 }
 
-/** Hover appointment row — warm detail (and staff reminder/mail). */
+/** Hover Create appointment — warm vehicles + dealerships. */
+export function prefetchBookSources(qc: QueryClient) {
+  softPrefetch(qc, ['vehicles', 'book'], () =>
+    apiGet<Page<Vehicle>>('/api/v1/vehicles', { size: 100 }),
+  )
+  softPrefetch(qc, ['dealerships'], () =>
+    apiGet<Page<Dealership>>('/api/v1/dealerships', { size: 100 }),
+  )
+}
+
+/**
+ * Hover appointment row — warm detail (+ reminders for staff).
+ * Skip mail hydrate on hover: that N+1 burns the 15/60s prod rate limit.
+ */
 export function prefetchAppointmentDetail(
   qc: QueryClient,
   userId: string,
   appointmentId: string,
   staff: boolean,
 ) {
-  void qc.prefetchQuery({
-    queryKey: ['appointment', userId, appointmentId],
-    queryFn: () => apiGet<Appointment>(`/api/v1/appointments/${appointmentId}`),
-  })
+  softPrefetch(qc, ['appointment', userId, appointmentId], () =>
+    apiGet<Appointment>(`/api/v1/appointments/${appointmentId}`),
+  )
   if (!staff) return
-  void qc.prefetchQuery({
-    queryKey: ['reminders', userId, appointmentId],
-    queryFn: () =>
-      apiGet<ReminderItem[]>(`/api/v1/appointments/${appointmentId}/reminders`),
-  })
-  void qc.prefetchQuery({
-    queryKey: ['notifications', userId, appointmentId],
-    queryFn: () => loadAppointmentMails(appointmentId),
-  })
+  softPrefetch(qc, ['reminders', userId, appointmentId], () =>
+    apiGet<ReminderItem[]>(`/api/v1/appointments/${appointmentId}/reminders`),
+  )
 }
 
 /** Hover notification row — warm detail. */
@@ -66,8 +74,7 @@ export function prefetchNotificationDetail(
   userId: string,
   notificationId: string,
 ) {
-  void qc.prefetchQuery({
-    queryKey: ['notification', userId, notificationId],
-    queryFn: () => apiGet<Notification>(`/api/v1/notifications/${notificationId}`),
-  })
+  softPrefetch(qc, ['notification', userId, notificationId], () =>
+    apiGet<Notification>(`/api/v1/notifications/${notificationId}`),
+  )
 }

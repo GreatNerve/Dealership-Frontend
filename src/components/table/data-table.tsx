@@ -6,7 +6,7 @@ import {
   type PaginationState,
   type VisibilityState,
 } from '@tanstack/react-table'
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { cn } from 'cn'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -60,6 +60,27 @@ export function DataTable<TData>({
 }: Props<TData>) {
   const isMobile = useIsMobile()
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  // Prefetch only after the cursor stops on a row — not while sweeping.
+  const HOVER_DWELL_MS = 350
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingKey = useRef<unknown>(null)
+  const scheduleHover = (row: TData) => {
+    if (!onRowHover) return
+    if (hoverTimer.current) clearTimeout(hoverTimer.current)
+    const key = getRowId?.(row) ?? row
+    pendingKey.current = key
+    hoverTimer.current = setTimeout(() => {
+      if (pendingKey.current === key) onRowHover(row)
+      hoverTimer.current = null
+    }, HOVER_DWELL_MS)
+  }
+  const cancelHover = () => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current)
+      hoverTimer.current = null
+    }
+    pendingKey.current = null
+  }
 
   const table = useReactTable({
     data,
@@ -107,8 +128,10 @@ export function DataTable<TData>({
                 key={getRowId?.(row) ?? index}
                 className={cn(onRowClick && 'cursor-pointer')}
                 onClick={() => onRowClick?.(row)}
-                onMouseEnter={() => onRowHover?.(row)}
-                onFocus={() => onRowHover?.(row)}
+                onMouseEnter={() => scheduleHover(row)}
+                onMouseLeave={cancelHover}
+                onFocus={() => scheduleHover(row)}
+                onBlur={cancelHover}
               >
                 {renderMobileCard(row)}
               </div>
@@ -168,8 +191,10 @@ export function DataTable<TData>({
                     onRowClick && 'cursor-pointer',
                   )}
                   onClick={() => onRowClick?.(row.original)}
-                  onMouseEnter={() => onRowHover?.(row.original)}
-                  onFocus={() => onRowHover?.(row.original)}
+                  onMouseEnter={() => scheduleHover(row.original)}
+                  onMouseLeave={cancelHover}
+                  onFocus={() => scheduleHover(row.original)}
+                  onBlur={cancelHover}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="border-0 px-3 py-3 align-middle">
