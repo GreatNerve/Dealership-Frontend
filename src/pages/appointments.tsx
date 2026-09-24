@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiGet } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import type { Dealership, Page, Vehicle } from '@/lib/types'
+import { prefetchAppointmentDetail, prefetchBookSources } from '@/lib/prefetch'
+import type { Appointment, Dealership, Page, Vehicle } from '@/lib/types'
 import {
   BookAppointmentDialog,
   buildCustomerForBooking,
@@ -32,6 +33,7 @@ const STATUS_ITEMS = [
 export function AppointmentsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const qc = useQueryClient()
   const staff = user?.role === 'DEALERSHIP_STAFF'
   const canCreate = !staff && !!user?.customerId
   const [createOpen, setCreateOpen] = useState(false)
@@ -80,6 +82,8 @@ export function AppointmentsPage() {
             type="button"
             className={PAGE_HEADER_PRIMARY_BUTTON_CLASS}
             onClick={() => setCreateOpen(true)}
+            onMouseEnter={() => prefetchBookSources(qc)}
+            onFocus={() => prefetchBookSources(qc)}
           >
             <Plus data-icon="inline-start" />
             Create appointment
@@ -114,6 +118,10 @@ export function AppointmentsPage() {
         emptyMessage="No appointments found."
         initialPageSize={10}
         onRowClick={(row) => navigate(`/appointments/${row.id}`)}
+        onRowHover={(row: Appointment) => {
+          if (!user?.id) return
+          prefetchAppointmentDetail(qc, user.id, row.id, staff)
+        }}
         getRowId={(row) => row.id}
         renderMobileCard={(row) => (
           <AppointmentMobileCard

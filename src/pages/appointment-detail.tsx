@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { apiGet, apiPost, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { loadAppointmentMails } from '@/lib/prefetch'
 import type { Appointment, AppointmentStatus, Notification, Page, ReminderItem } from '@/lib/types'
 import { AppointmentStatusBadge } from '@/components/appointment-status-badge'
 import { DateTimePickerField } from '@/components/forms/date-time-picker-field'
@@ -98,21 +99,6 @@ function reminderScheduleGroups(items: ReminderItem[]) {
     })
   }
   return groups
-}
-
-async function loadAppointmentMails(appointmentId: string) {
-  const page = await apiGet<Page<Notification>>('/api/v1/notifications', {
-    appointmentId,
-    size: 100,
-  })
-  const items = await Promise.all(
-    page.items.map((row) =>
-      row.events?.length
-        ? Promise.resolve(row)
-        : apiGet<Notification>(`/api/v1/notifications/${row.id}`).catch(() => row),
-    ),
-  )
-  return { ...page, items }
 }
 
 export function AppointmentDetailPage() {

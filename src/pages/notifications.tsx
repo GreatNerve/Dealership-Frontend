@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { FilterSelect } from '@/components/filter-select'
 import { InstantDateRange } from '@/components/instant-date-range'
 import { PageShell } from '@/components/layout/page-shell'
@@ -9,6 +10,8 @@ import { notificationColumns } from '@/components/table/columns/notification-col
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuth } from '@/lib/auth'
 import { optionalZonedRange } from '@/lib/format-datetime'
+import { prefetchNotificationDetail } from '@/lib/prefetch'
+import type { Notification } from '@/lib/types'
 
 const GENERATION_ITEMS = [
   { value: 'ALL', label: 'All' },
@@ -37,6 +40,7 @@ const EVENT_ITEMS = [
 export function NotificationsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const qc = useQueryClient()
   const staff = user?.role === 'DEALERSHIP_STAFF'
   const tz = user?.homeDealership?.timezone ?? 'UTC'
   const [fromYmd, setFromYmd] = useState('')
@@ -109,6 +113,10 @@ export function NotificationsPage() {
         emptyMessage="No notifications in this range."
         initialPageSize={10}
         onRowClick={(row) => navigate(`/notifications/${row.id}`)}
+        onRowHover={(row: Notification) => {
+          if (!user?.id) return
+          prefetchNotificationDetail(qc, user.id, row.id)
+        }}
         getRowId={(row) => row.id}
         renderMobileCard={(row) => (
           <NotificationMobileCard notification={row} timeZone={tz} />

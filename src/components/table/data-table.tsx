@@ -35,6 +35,7 @@ type Props<TData> = {
   isFetching?: boolean
   emptyMessage?: string
   onRowClick?: (row: TData) => void
+  onRowHover?: (row: TData) => void
   renderMobileCard?: (row: TData) => ReactNode
   getRowId?: (row: TData) => string
 }
@@ -53,6 +54,7 @@ export function DataTable<TData>({
   isFetching = false,
   emptyMessage = 'No results found.',
   onRowClick,
+  onRowHover,
   renderMobileCard,
   getRowId,
 }: Props<TData>) {
@@ -105,6 +107,8 @@ export function DataTable<TData>({
                 key={getRowId?.(row) ?? index}
                 className={cn(onRowClick && 'cursor-pointer')}
                 onClick={() => onRowClick?.(row)}
+                onMouseEnter={() => onRowHover?.(row)}
+                onFocus={() => onRowHover?.(row)}
               >
                 {renderMobileCard(row)}
               </div>
@@ -164,6 +168,8 @@ export function DataTable<TData>({
                     onRowClick && 'cursor-pointer',
                   )}
                   onClick={() => onRowClick?.(row.original)}
+                  onMouseEnter={() => onRowHover?.(row.original)}
+                  onFocus={() => onRowHover?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="border-0 px-3 py-3 align-middle">

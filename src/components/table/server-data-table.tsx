@@ -15,6 +15,7 @@ type Props<TData> = {
   emptyMessage?: string
   initialPageSize?: number
   onRowClick?: (row: TData) => void
+  onRowHover?: (row: TData) => void
   renderMobileCard?: (row: TData) => ReactNode
   getRowId?: (row: TData) => string
   enabled?: boolean
@@ -29,6 +30,7 @@ export function ServerDataTable<TData>({
   emptyMessage,
   initialPageSize = 10,
   onRowClick,
+  onRowHover,
   renderMobileCard,
   getRowId,
   enabled = true,
@@ -91,6 +93,7 @@ export function ServerDataTable<TData>({
       isFetching={fetchQuery.isFetching}
       emptyMessage={emptyMessage}
       onRowClick={onRowClick}
+      onRowHover={onRowHover}
       renderMobileCard={renderMobileCard}
       getRowId={getRowId}
     />
