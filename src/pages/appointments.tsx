@@ -82,8 +82,7 @@ export function AppointmentsPage() {
             type="button"
             className={PAGE_HEADER_PRIMARY_BUTTON_CLASS}
             onClick={() => setCreateOpen(true)}
-            onMouseEnter={() => prefetchBookSources(qc)}
-            onFocus={() => prefetchBookSources(qc)}
+            onPointerEnter={() => prefetchBookSources(qc)}
           >
             <Plus data-icon="inline-start" />
             Create appointment

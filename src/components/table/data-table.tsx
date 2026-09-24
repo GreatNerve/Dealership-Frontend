@@ -60,20 +60,23 @@ export function DataTable<TData>({
 }: Props<TData>) {
   const isMobile = useIsMobile()
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-  // Prefetch only after the cursor stops on a row — not while sweeping.
-  const HOVER_DWELL_MS = 350
+  // Prefetch only after the cursor stops on a row (not while sweeping).
+  const HOVER_DWELL_MS = 250
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendingKey = useRef<unknown>(null)
-  const scheduleHover = (row: TData) => {
+  const pendingKey = useRef<string | null>(null)
+  const rowKey = (row: TData, index: number) => getRowId?.(row) ?? `i:${index}`
+
+  const scheduleHover = (row: TData, index: number) => {
     if (!onRowHover) return
     if (hoverTimer.current) clearTimeout(hoverTimer.current)
-    const key = getRowId?.(row) ?? row
+    const key = rowKey(row, index)
     pendingKey.current = key
     hoverTimer.current = setTimeout(() => {
-      if (pendingKey.current === key) onRowHover(row)
-      hoverTimer.current = null
+      if (pendingKey.current !== key) return
+      onRowHover(row)
     }, HOVER_DWELL_MS)
   }
+
   const cancelHover = () => {
     if (hoverTimer.current) {
       clearTimeout(hoverTimer.current)
@@ -128,10 +131,12 @@ export function DataTable<TData>({
                 key={getRowId?.(row) ?? index}
                 className={cn(onRowClick && 'cursor-pointer')}
                 onClick={() => onRowClick?.(row)}
-                onMouseEnter={() => scheduleHover(row)}
-                onMouseLeave={cancelHover}
-                onFocus={() => scheduleHover(row)}
-                onBlur={cancelHover}
+                onPointerEnter={(e) => {
+                  if (e.pointerType === 'mouse') scheduleHover(row, index)
+                }}
+                onPointerLeave={(e) => {
+                  if (e.pointerType === 'mouse') cancelHover()
+                }}
               >
                 {renderMobileCard(row)}
               </div>
@@ -183,7 +188,7 @@ export function DataTable<TData>({
             )}
             {!isLoading &&
               hasRows &&
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row, index) => (
                 <TableRow
                   key={row.id}
                   className={cn(
@@ -191,10 +196,12 @@ export function DataTable<TData>({
                     onRowClick && 'cursor-pointer',
                   )}
                   onClick={() => onRowClick?.(row.original)}
-                  onMouseEnter={() => scheduleHover(row.original)}
-                  onMouseLeave={cancelHover}
-                  onFocus={() => scheduleHover(row.original)}
-                  onBlur={cancelHover}
+                  onPointerEnter={(e) => {
+                    if (e.pointerType === 'mouse') scheduleHover(row.original, index)
+                  }}
+                  onPointerLeave={(e) => {
+                    if (e.pointerType === 'mouse') cancelHover()
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="border-0 px-3 py-3 align-middle">

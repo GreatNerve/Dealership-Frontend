@@ -25,18 +25,23 @@ export async function loadAppointmentMails(appointmentId: string) {
   return { ...page, items }
 }
 
-/** Drop failed prefetch so a 429 does not poison the next navigation. */
+/** Prefetch; ignore cache miss failures so a 429 does not stick. */
 function softPrefetch<T>(
   qc: QueryClient,
   queryKey: QueryKey,
   queryFn: () => Promise<T>,
 ) {
-  if (qc.getQueryData(queryKey) != null) return
   const state = qc.getQueryState(queryKey)
+  if (state?.data != null && state.fetchStatus !== 'fetching') {
+    // Already warm — skip (avoids rate-limit burn). Still "works" on navigate.
+    if (state.dataUpdatedAt && Date.now() - state.dataUpdatedAt < 30_000) return
+  }
   if (state?.fetchStatus === 'fetching') return
-  void qc.prefetchQuery({ queryKey, queryFn }).catch(() => {
-    qc.removeQueries({ queryKey, exact: true })
-  })
+  void qc
+    .prefetchQuery({ queryKey, queryFn, staleTime: 30_000 })
+    .catch(() => {
+      qc.removeQueries({ queryKey, exact: true })
+    })
 }
 
 /** Hover Create appointment — warm vehicles + dealerships. */
@@ -49,10 +54,7 @@ export function prefetchBookSources(qc: QueryClient) {
   )
 }
 
-/**
- * Hover appointment row — warm detail (+ reminders for staff).
- * Skip mail hydrate on hover: that N+1 burns the 15/60s prod rate limit.
- */
+/** Hover appointment row — detail (+ reminders for staff). */
 export function prefetchAppointmentDetail(
   qc: QueryClient,
   userId: string,

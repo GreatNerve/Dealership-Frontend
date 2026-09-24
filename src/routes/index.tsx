@@ -59,7 +59,7 @@ export function AppRouter() {
               <Route path="/vehicles" element={<VehiclesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/appointments" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
           <Toaster richColors closeButton position="top-right" />
         </BrowserRouter>
