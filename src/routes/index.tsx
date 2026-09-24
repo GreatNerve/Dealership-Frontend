@@ -10,7 +10,10 @@ import { RegisterCustomerPage } from '@/pages/register-customer'
 import { RegisterDealershipPage } from '@/pages/register-dealership'
 import { AppointmentsPage } from '@/pages/appointments'
 import { AppointmentDetailPage } from '@/pages/appointment-detail'
+import { DashboardPage } from '@/pages/dashboard'
 import { DealershipsPage } from '@/pages/dealerships'
+import { NotificationsPage } from '@/pages/notifications'
+import { NotificationDetailPage } from '@/pages/notification-detail'
 import { VehiclesPage } from '@/pages/vehicles'
 import { ProfilePage } from '@/pages/profile'
 import { Spinner } from '@/components/ui/spinner'
@@ -46,8 +49,11 @@ export function AppRouter() {
             </Route>
             <Route element={<RequireAuth />}>
               <Route path="/" element={<Navigate to="/appointments" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/appointments" element={<AppointmentsPage />} />
               <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/notifications/:id" element={<NotificationDetailPage />} />
               <Route path="/customers" element={<Navigate to="/appointments" replace />} />
               <Route path="/dealerships" element={<DealershipsPage />} />
               <Route path="/vehicles" element={<VehiclesPage />} />

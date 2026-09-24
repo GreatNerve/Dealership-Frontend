@@ -70,6 +70,20 @@ export function formatInstantInIanaZone(isoUtc: string, ianaZone: string): strin
   return formatWallClockFromIsoOffset(isoUtc) ?? isoUtc
 }
 
+/** Delivery Event `occurredAt`. Year ~58699 means millis were stored as seconds. */
+export function providerOccurredAtIso(isoUtc: string): string {
+  const padded = isoUtc.replace(/^\+(\d{5})-/, '+0$1-')
+  const ms = Date.parse(padded)
+  if (Number.isFinite(ms) && ms > Date.parse('2100-01-01T00:00:00Z')) {
+    return new Date(ms / 1000).toISOString()
+  }
+  return isoUtc
+}
+
+export function formatProviderOccurredAt(isoUtc: string, ianaZone: string): string {
+  return formatInstantInIanaZone(providerOccurredAtIso(isoUtc), ianaZone)
+}
+
 export function formatBookingOffsetLabel(displayOffset: string): string {
   const trimmed = displayOffset.trim()
   if (!trimmed) return ''
@@ -81,6 +95,89 @@ export function formatBookingOffsetLabel(displayOffset: string): string {
 export function formatTimezoneLabel(iana: string): string {
   if (iana === 'Asia/Calcutta') return 'Asia/Kolkata'
   return iana
+}
+
+/** Calendar date in an IANA zone as `YYYY-MM-DD`. */
+export function ymdInTimeZone(instant: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(instant)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')}`
+}
+
+export function todayYmd(timeZone: string): string {
+  return ymdInTimeZone(new Date(), timeZone)
+}
+
+export function shiftYmd(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split('-').map(Number)
+  const dt = new Date(Date.UTC(year, month - 1, day + days))
+  return dt.toISOString().slice(0, 10)
+}
+
+function zoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(date)
+  const num = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)?.value)
+  let hour = num('hour')
+  if (hour === 24) hour = 0
+  const asUtc = Date.UTC(
+    num('year'),
+    num('month') - 1,
+    num('day'),
+    hour,
+    num('minute'),
+    num('second'),
+  )
+  return asUtc - date.getTime()
+}
+
+/** UTC Instant of a local wall time in an IANA zone. */
+export function instantAtZoneLocal(ymd: string, timeZone: string, hm = '00:00:00'): Date {
+  const [year, month, day] = ymd.split('-').map(Number)
+  const [hour, minute, second] = hm.split(':').map(Number)
+  const utcGuess = Date.UTC(year, month - 1, day, hour, minute || 0, second || 0)
+  const first = new Date(utcGuess)
+  const adjusted = new Date(utcGuess - zoneOffsetMs(first, timeZone))
+  return new Date(utcGuess - zoneOffsetMs(adjusted, timeZone))
+}
+
+/** Inclusive local dates → Instant `from` (inclusive) / `to` (exclusive). */
+export function zonedDayRange(
+  fromYmd: string,
+  toYmd: string,
+  timeZone: string,
+): { from: string; to: string } {
+  const from = instantAtZoneLocal(fromYmd, timeZone)
+  const to = instantAtZoneLocal(shiftYmd(toYmd, 1), timeZone)
+  return { from: from.toISOString(), to: to.toISOString() }
+}
+
+export function optionalZonedRange(
+  fromYmd: string,
+  toYmd: string,
+  timeZone: string,
+): { from?: string; to?: string } {
+  if (fromYmd && toYmd) return zonedDayRange(fromYmd, toYmd, timeZone)
+  if (fromYmd) return { from: instantAtZoneLocal(fromYmd, timeZone).toISOString() }
+  if (toYmd) {
+    return { to: instantAtZoneLocal(shiftYmd(toYmd, 1), timeZone).toISOString() }
+  }
+  return {}
 }
 
 /** List / detail visit time from API `scheduledAtLocal`. */

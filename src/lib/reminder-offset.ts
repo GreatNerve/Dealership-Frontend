@@ -21,3 +21,9 @@ export function formatOffsetMinutes(minutes: number): string {
   }
   return `${minutes} min`
 }
+
+export function formatOffsetBeforeVisit(minutes: number): string {
+  const offset = formatOffsetMinutes(minutes)
+  if (minutes === 0) return offset
+  return `${offset} before visit`
+}

@@ -12,7 +12,10 @@ function pretty(status: string) {
 }
 
 /** One staff-facing status per offset (notification when present, else reminder queue state). */
-export function reminderDeliveryView(item: ReminderItem): ReminderDeliveryView {
+export function reminderDeliveryView(
+  item: ReminderItem,
+  extra?: { opened?: boolean; bounced?: boolean },
+): ReminderDeliveryView {
   const notification = item.notification.status
   const reminder = item.reminderStatus
 
@@ -28,19 +31,24 @@ export function reminderDeliveryView(item: ReminderItem): ReminderDeliveryView {
     if (reminder === 'PENDING' || reminder === 'PROCESSING') {
       return { label: 'Pending', tone: 'pending' }
     }
+    if (reminder === 'EXPIRED') {
+      return { label: 'Not sent', tone: 'muted' }
+    }
     return { label: pretty(reminder), tone: 'muted' }
   }
 
-  const nLabel = pretty(notification)
-  if (reminder === notification) {
-    return {
-      label: nLabel,
-      tone: notification === 'SENT' || notification === 'DELIVERED' ? 'sent' : 'default',
+  if (notification === 'SENT' || notification === 'DELIVERED') {
+    if (extra?.bounced) {
+      return { label: 'Bounced', tone: 'failed' }
     }
+    if (extra?.opened) {
+      return { label: 'Opened', tone: 'sent' }
+    }
+    return { label: pretty(notification), tone: 'sent' }
   }
 
   return {
-    label: nLabel,
-    tone: notification === 'SENT' || notification === 'DELIVERED' ? 'sent' : 'default',
+    label: pretty(notification),
+    tone: 'default',
   }
 }

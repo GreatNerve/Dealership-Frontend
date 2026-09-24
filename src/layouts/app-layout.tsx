@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, Car, LogOut, UserCircle } from 'lucide-react'
+import { Building2, CalendarDays, Car, LayoutDashboard, LogOut, Mail, UserCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AppLogo } from '@/components/brand/app-logo'
 import { UserAvatar } from '@/components/user-avatar'
@@ -55,10 +55,22 @@ export function AppLayout() {
               <SidebarGroupLabel>Overview</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
+                  {staff && (
+                    <NavItem to="/dashboard" tooltip="Dashboard">
+                      <LayoutDashboard />
+                      <span>Dashboard</span>
+                    </NavItem>
+                  )}
                   <NavItem to="/appointments" end tooltip="Appointments">
                     <CalendarDays />
                     <span>Appointments</span>
                   </NavItem>
+                  {staff && (
+                    <NavItem to="/notifications" tooltip="Notifications">
+                      <Mail />
+                      <span>Notifications</span>
+                    </NavItem>
+                  )}
                   {!staff && user?.customerId && (
                     <NavItem to="/vehicles" tooltip="My vehicles">
                       <Car />

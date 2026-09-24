@@ -9,6 +9,8 @@ import {
   BookAppointmentDialog,
   buildCustomerForBooking,
 } from '@/components/book-appointment-dialog'
+import { FilterSelect } from '@/components/filter-select'
+import { InstantDateRange } from '@/components/instant-date-range'
 import {
   PAGE_HEADER_PRIMARY_BUTTON_CLASS,
   PageShell,
@@ -17,6 +19,15 @@ import { ServerDataTable } from '@/components/table'
 import { AppointmentMobileCard } from '@/components/table/appointment-mobile-card'
 import { appointmentColumns } from '@/components/table/columns/appointment-columns'
 import { Button } from '@/components/ui/button'
+import { optionalZonedRange } from '@/lib/format-datetime'
+
+const STATUS_ITEMS = [
+  { value: 'ALL', label: 'All' },
+  { value: 'CONFIRMED', label: 'Confirmed' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'NO_SHOW', label: 'No show' },
+]
 
 export function AppointmentsPage() {
   const navigate = useNavigate()
@@ -24,6 +35,17 @@ export function AppointmentsPage() {
   const staff = user?.role === 'DEALERSHIP_STAFF'
   const canCreate = !staff && !!user?.customerId
   const [createOpen, setCreateOpen] = useState(false)
+  const tz = user?.homeDealership?.timezone ?? 'UTC'
+  const [fromYmd, setFromYmd] = useState('')
+  const [toYmd, setToYmd] = useState('')
+  const [status, setStatus] = useState('ALL')
+  const extraParams = useMemo(
+    () => ({
+      ...optionalZonedRange(fromYmd, toYmd, tz),
+      status: staff && status !== 'ALL' ? status : undefined,
+    }),
+    [fromYmd, toYmd, tz, status, staff],
+  )
 
   const dealerships = useQuery({
     queryKey: ['dealerships'],
@@ -51,11 +73,7 @@ export function AppointmentsPage() {
   return (
     <PageShell
       title="Appointments"
-      description={
-        staff
-          ? 'Service visits at your home dealership — open a row to complete, reschedule, or cancel.'
-          : 'Book a new visit or open a row to view, reschedule, or cancel.'
-      }
+      description={staff ? 'Home dealership visits.' : 'Your service visits.'}
       actions={
         canCreate ? (
           <Button
@@ -69,9 +87,28 @@ export function AppointmentsPage() {
         ) : undefined
       }
     >
+      {staff ? (
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <InstantDateRange
+            fromYmd={fromYmd}
+            toYmd={toYmd}
+            onFromYmd={setFromYmd}
+            onToYmd={setToYmd}
+            timeZone={tz}
+          />
+          <FilterSelect
+            id="appt-status"
+            label="Status"
+            value={status}
+            onValueChange={setStatus}
+            items={STATUS_ITEMS}
+          />
+        </div>
+      ) : null}
       <ServerDataTable
         queryKey="appointments"
         path="/api/v1/appointments"
+        extraParams={extraParams}
         columns={appointmentColumns({ omitDealership: staff, omitCustomer: !staff })}
         searchPlaceholder={staff ? 'Search plate or customer' : 'Search plate'}
         emptyMessage="No appointments found."

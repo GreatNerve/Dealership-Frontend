@@ -25,5 +25,5 @@ Optional: set `VITE_API_BASE` in `.env` if the API is on another host (then conf
 
 | Email | Password | Role |
 |-------|----------|------|
-| `staff@demo.local` | `password` | Staff (customer directory, appointments, reminders) |
-| `customer@demo.local` | `password` | Customer (own appointments, vehicles) |
+| `staff@greatnerve.com` | `password1` | Staff (customer directory, appointments, reminders) |
+| `customer@greatnerve.com` | `password1` | Customer (own appointments, vehicles) |

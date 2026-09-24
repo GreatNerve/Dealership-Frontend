@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { apiGet } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import type { Page } from '@/lib/types'
@@ -18,6 +18,7 @@ type Props<TData> = {
   renderMobileCard?: (row: TData) => ReactNode
   getRowId?: (row: TData) => string
   enabled?: boolean
+  extraParams?: Record<string, string | number | undefined>
 }
 
 export function ServerDataTable<TData>({
@@ -31,6 +32,7 @@ export function ServerDataTable<TData>({
   renderMobileCard,
   getRowId,
   enabled = true,
+  extraParams,
 }: Props<TData>) {
   const { user } = useAuth()
   const [pagination, setPagination] = useState<PaginationState>({
@@ -39,20 +41,26 @@ export function ServerDataTable<TData>({
   })
   const [searchValue, setSearchValue] = useState('')
   const debouncedSearch = useDebounce(searchValue, 400)
+  const extraKey = JSON.stringify(extraParams ?? {})
 
   useEffect(() => {
     setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }))
-  }, [debouncedSearch])
+  }, [debouncedSearch, extraKey])
+
+  const params = useMemo(
+    () => ({
+      page: pagination.pageIndex,
+      size: pagination.pageSize,
+      q: debouncedSearch.trim() || undefined,
+      ...extraParams,
+    }),
+    [pagination.pageIndex, pagination.pageSize, debouncedSearch, extraParams],
+  )
 
   const fetchQuery = useQuery({
-    queryKey: [queryKey, user?.id, pagination.pageIndex, pagination.pageSize, debouncedSearch],
+    queryKey: [queryKey, user?.id, params],
     enabled: enabled && !!user,
-    queryFn: () =>
-      apiGet<Page<TData>>(path, {
-        page: pagination.pageIndex,
-        size: pagination.pageSize,
-        q: debouncedSearch.trim() || undefined,
-      }),
+    queryFn: () => apiGet<Page<TData>>(path, params),
   })
 
   const page = fetchQuery.data

@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Building2, CalendarClock, Car } from 'lucide-react'
+import { ArrowLeft, Building2, CalendarClock, Car, Mail } from 'lucide-react'
 import { UserAvatar } from '@/components/user-avatar'
 import { Link, useParams } from 'react-router-dom'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { apiGet, apiPost, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import type { Appointment, AppointmentStatus, ReminderItem } from '@/lib/types'
+import type { Appointment, AppointmentStatus, Notification, Page, ReminderItem } from '@/lib/types'
 import { AppointmentStatusBadge } from '@/components/appointment-status-badge'
 import { DateTimePickerField } from '@/components/forms/date-time-picker-field'
 import { DetailField, DetailPanel } from '@/components/layout/detail-field'
@@ -14,16 +14,18 @@ import { PageShell } from '@/components/layout/page-shell'
 import {
   formatAppointmentScheduled,
   formatBookingOffsetLabel,
-  formatInstantInIanaZone,
   formatTimezoneLabel,
 } from '@/lib/format-datetime'
 import { customerContactEmail, customerDisplayName } from '@/lib/labels'
-import { formatOffsetMinutes } from '@/lib/reminder-offset'
 import { dealershipVisibleToStaff } from '@/lib/dealership-view'
-import { useReminderCountdown } from '@/hooks/use-reminder-countdown'
-import { reminderDeliveryView } from '@/lib/reminder-delivery'
+import { watchAppointmentMail } from '@/lib/mail-watch'
+import { SendMailDialog } from '@/components/send-mail-dialog'
+import {
+  ReminderFlatRow,
+  ReminderScheduleRow,
+  StaffMailScheduleRow,
+} from '@/components/reminder-schedule-timeline'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
@@ -77,85 +79,40 @@ function HeroFact({
   )
 }
 
-function DeliveryStatusBadge({ item }: { item: ReminderItem }) {
-  const view = reminderDeliveryView(item)
-  const badgeClass =
-    view.tone === 'sent'
-      ? 'border-0 bg-emerald-50 font-normal text-emerald-800'
-      : view.tone === 'pending'
-        ? 'border-amber-200 bg-amber-50 font-normal text-amber-900'
-        : view.tone === 'failed'
-          ? 'border-destructive/30 bg-destructive/5 font-normal text-destructive'
-          : view.tone === 'muted'
-            ? 'font-normal text-muted-foreground'
-            : 'font-normal'
-
-  return (
-    <div className="text-left sm:text-right">
-      <Badge variant="outline" className={badgeClass}>
-        {view.label}
-      </Badge>
-    </div>
-  )
+function reminderScheduleGroups(items: ReminderItem[]) {
+  if (!items.length) return []
+  const current = Math.max(...items.map((item) => item.scheduleVersion))
+  const groups: { current: boolean; items: ReminderItem[] }[] = []
+  const byVersion = new Map<number, ReminderItem[]>()
+  for (const item of items) {
+    const existing = byVersion.get(item.scheduleVersion)
+    if (existing) {
+      existing.push(item)
+      continue
+    }
+    const next = [item]
+    byVersion.set(item.scheduleVersion, next)
+    groups.push({
+      current: item.scheduleVersion === current,
+      items: next,
+    })
+  }
+  return groups
 }
 
-function ReminderRow({
-  item,
-  dealershipTimeZone,
-  replayingId,
-  onReplay,
-}: {
-  item: ReminderItem
-  dealershipTimeZone: string
-  replayingId: string | null
-  onReplay: (notificationId: string) => void
-}) {
-  const countdown = useReminderCountdown(item)
-  const canReplay =
-    item.notification.status === 'DEAD_LETTER' && item.notification.id != null
-
-  return (
-    <div className="space-y-1.5 border-b border-border py-3 last:border-0">
-      <div className="grid gap-2 sm:grid-cols-[6.5rem_1fr_auto] sm:items-start">
-        <div>
-          <p className="text-sm font-medium">{formatOffsetMinutes(item.offsetMinutes)}</p>
-          <p className="text-[11px] text-muted-foreground">before visit</p>
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Sends at
-          </p>
-          <p className="mt-0.5 text-sm font-medium tabular-nums text-foreground">
-            {formatInstantInIanaZone(item.dueAt, dealershipTimeZone)}
-          </p>
-          {countdown ? (
-            <p className="mt-1 text-xs font-medium text-foreground/80">{countdown}</p>
-          ) : null}
-        </div>
-        <div className="flex flex-col items-start gap-1.5 sm:items-end">
-          <DeliveryStatusBadge item={item} />
-          {canReplay ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs"
-              disabled={replayingId === item.notification.id}
-              onClick={() => onReplay(item.notification.id!)}
-            >
-              {replayingId === item.notification.id ? (
-                <Spinner data-icon="inline-start" className="size-3" />
-              ) : null}
-              Resend
-            </Button>
-          ) : null}
-        </div>
-      </div>
-      {item.notification.lastError ? (
-        <p className="text-xs leading-relaxed text-destructive">{item.notification.lastError}</p>
-      ) : null}
-    </div>
+async function loadAppointmentMails(appointmentId: string) {
+  const page = await apiGet<Page<Notification>>('/api/v1/notifications', {
+    appointmentId,
+    size: 100,
+  })
+  const items = await Promise.all(
+    page.items.map((row) =>
+      row.events?.length
+        ? Promise.resolve(row)
+        : apiGet<Notification>(`/api/v1/notifications/${row.id}`).catch(() => row),
+    ),
   )
+  return { ...page, items }
 }
 
 export function AppointmentDetailPage() {
@@ -165,6 +122,12 @@ export function AppointmentDetailPage() {
   const staff = user?.role === 'DEALERSHIP_STAFF'
   const [rescheduleLocal, setRescheduleLocal] = useState('')
   const [replayingId, setReplayingId] = useState<string | null>(null)
+  const [sendMailOpen, setSendMailOpen] = useState(false)
+  const mailWatchMs = () => {
+    const rem = qc.getQueryData<ReminderItem[]>(['reminders', user?.id, id]) ?? []
+    const mailPage = qc.getQueryData<Page<Notification>>(['notifications', user?.id, id])
+    return watchAppointmentMail(rem, mailPage?.items ?? []) ? 4000 : false
+  }
 
   const appt = useQuery({
     queryKey: ['appointment', user?.id, id],
@@ -176,6 +139,14 @@ export function AppointmentDetailPage() {
     queryKey: ['reminders', user?.id, id],
     enabled: !!id && !!user && staff,
     queryFn: () => apiGet<ReminderItem[]>(`/api/v1/appointments/${id}/reminders`),
+    refetchInterval: mailWatchMs,
+  })
+
+  const mails = useQuery({
+    queryKey: ['notifications', user?.id, id],
+    enabled: !!id && !!user && staff,
+    queryFn: () => loadAppointmentMails(id!),
+    refetchInterval: mailWatchMs,
   })
 
   useEffect(() => {
@@ -241,6 +212,7 @@ export function AppointmentDetailPage() {
     onSuccess: () => {
       toast.success('Notification queued to resend')
       qc.invalidateQueries({ queryKey: ['reminders', user?.id, id] })
+      qc.invalidateQueries({ queryKey: ['notifications'] })
     },
     onError: (e: Error) => toast.error(e.message),
     onSettled: () => setReplayingId(null),
@@ -282,6 +254,9 @@ export function AppointmentDetailPage() {
     : null
   const pageTitle = vehicleLine ?? plate ?? 'Service visit'
   const customerEmail = staff ? customerContactEmail(a.customer) : null
+  const mailItems = mails.data?.items ?? []
+  const byNotification = new Map(mailItems.map((note) => [note.id, note]))
+  const manuals = mailItems.filter((note) => note.generation === 'MANUAL')
 
   return (
     <PageShell
@@ -307,6 +282,12 @@ export function AppointmentDetailPage() {
       actions={
         <div className="flex flex-wrap items-center justify-end gap-2">
           <AppointmentStatusBadge status={normalizeStatus(a.status)} />
+          {staff ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => setSendMailOpen(true)}>
+              <Mail className="size-4" />
+              Send mail
+            </Button>
+          ) : null}
           <Link
             to="/appointments"
             className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
@@ -366,7 +347,7 @@ export function AppointmentDetailPage() {
           {staff ? (
             <DetailPanel
               title="Reminder schedule"
-              description={`Send times in ${formatTimezoneLabel(dealershipTz)}. Delivery status per offset.`}
+              description={`Send times in ${formatTimezoneLabel(dealershipTz)}. Latest status first per offset.`}
             >
               {reminders.isLoading && <Skeleton className="h-28 w-full" />}
               {reminders.isError && (
@@ -376,18 +357,118 @@ export function AppointmentDetailPage() {
                 <p className="text-sm text-muted-foreground">No reminder rows yet.</p>
               )}
               {reminders.isSuccess && reminders.data.length > 0 && (
-                <div className="divide-y divide-border">
-                  {reminders.data.map((r) => (
-                    <ReminderRow
-                      key={r.offsetMinutes}
-                      item={r}
-                      dealershipTimeZone={dealershipTz}
-                      replayingId={replayingId}
-                      onReplay={(notificationId) => replayNotification.mutate(notificationId)}
-                    />
-                  ))}
+                <div className="flex flex-col divide-y divide-border">
+                  {reminderScheduleGroups(reminders.data).map((group, index) => {
+                    if (group.current) {
+                      return (
+                        <section key={`current-${index}`} className="space-y-3 pb-5 first:pt-0">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">System reminders</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              Scheduled offsets for this visit
+                            </p>
+                          </div>
+                          <ol className="relative">
+                            {group.items.map((r, rowIndex) => {
+                              const note = r.notification.id
+                                ? byNotification.get(r.notification.id)
+                                : undefined
+                              return (
+                                <ReminderScheduleRow
+                                  key={`${r.scheduleVersion}-${r.offsetMinutes}`}
+                                  item={r}
+                                  note={note}
+                                  dealershipTimeZone={dealershipTz}
+                                  replayingId={replayingId}
+                                  onReplay={(notificationId) =>
+                                    replayNotification.mutate(notificationId)
+                                  }
+                                  last={rowIndex === group.items.length - 1}
+                                />
+                              )
+                            })}
+                          </ol>
+                        </section>
+                      )
+                    }
+                    return (
+                      <section key={`prior-${index}`} className="space-y-3 py-5">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Before reschedule</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            Offsets from an earlier visit time — kept for history
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-border bg-muted/15 px-4">
+                          {group.items.map((r) => {
+                            const note = r.notification.id
+                              ? byNotification.get(r.notification.id)
+                              : undefined
+                            return (
+                              <ReminderFlatRow
+                                key={`${r.scheduleVersion}-${r.offsetMinutes}`}
+                                item={r}
+                                note={note}
+                                dealershipTimeZone={dealershipTz}
+                                replayingId={replayingId}
+                                onReplay={(notificationId) =>
+                                  replayNotification.mutate(notificationId)
+                                }
+                              />
+                            )
+                          })}
+                        </div>
+                      </section>
+                    )
+                  })}
+                  {manuals.length > 0 ? (
+                    <section className="space-y-3 pt-5">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Manual send</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Staff-composed mail for this appointment
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border px-4">
+                        {manuals.map((note) => (
+                          <StaffMailScheduleRow
+                            key={note.id}
+                            note={note}
+                            dealershipTimeZone={dealershipTz}
+                            replayingId={replayingId}
+                            onReplay={(notificationId) =>
+                              replayNotification.mutate(notificationId)
+                            }
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
                 </div>
               )}
+              {reminders.isSuccess &&
+              reminders.data.length === 0 &&
+              manuals.length > 0 ? (
+                <section className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Manual send</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Staff-composed mail for this appointment
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border px-4">
+                    {manuals.map((note) => (
+                      <StaffMailScheduleRow
+                        key={note.id}
+                        note={note}
+                        dealershipTimeZone={dealershipTz}
+                        replayingId={replayingId}
+                        onReplay={(notificationId) => replayNotification.mutate(notificationId)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </DetailPanel>
           ) : (
             <DetailPanel title="Visit summary">
@@ -472,6 +553,9 @@ export function AppointmentDetailPage() {
           </DetailPanel>
         </div>
       </div>
+      {staff ? (
+        <SendMailDialog open={sendMailOpen} onOpenChange={setSendMailOpen} appointment={a} />
+      ) : null}
     </PageShell>
   )
 }
