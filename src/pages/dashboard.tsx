@@ -83,24 +83,23 @@ export function DashboardPage() {
   const tz = user?.homeDealership?.timezone ?? 'UTC'
   const today = todayYmd(tz)
   const yearStart = `${today.slice(0, 4)}-01-01`
+  const weekStart = shiftYmd(today, -6)
   const days = useMemo(() => weekYmds(today), [today])
   const yearRange = useMemo(() => zonedDayRange(yearStart, today, tz), [yearStart, today, tz])
+  const weekRange = useMemo(() => zonedDayRange(weekStart, today, tz), [weekStart, today, tz])
 
-  const overview = useQuery({
-    queryKey: ['dashboard', user?.id, today, tz],
+  const totals = useQuery({
+    queryKey: ['dashboard', 'totals', user?.id, today, tz],
     enabled: staff && !!user?.homeDealershipId,
     staleTime: 30_000,
-    queryFn: async () => {
-      try {
-        return await apiGet<DashboardStats>('/api/v1/dashboard/stats', {
-          ...yearRange,
-          bucket: 'DAY',
-        })
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 404) return emptyDash
-        throw e
-      }
-    },
+    queryFn: () => loadDash(yearRange),
+  })
+
+  const week = useQuery({
+    queryKey: ['dashboard', 'week', user?.id, today, tz],
+    enabled: staff && !!user?.homeDealershipId,
+    staleTime: 30_000,
+    queryFn: () => loadDash({ ...weekRange, bucket: 'DAY' }),
   })
 
   if (!staff) return <Navigate to="/appointments" replace />
@@ -116,23 +115,26 @@ export function DashboardPage() {
     )
   }
 
-  const yearAppt = overview.data?.appointments ?? emptyAppt
-  const yearMail = overview.data?.notifications ?? emptyMail
-  const todayAppt = pickApptDay(yearAppt.buckets, today)
-  const todayMail = pickMailDay(yearMail.buckets, today)
+  const yearAppt = totals.data?.appointments ?? emptyAppt
+  const yearMail = totals.data?.notifications ?? emptyMail
+  const weekAppt = week.data?.appointments?.buckets
+  const weekMail = week.data?.notifications?.buckets
+  const todayAppt = pickApptDay(weekAppt, today)
+  const todayMail = pickMailDay(weekMail, today)
+  const loading = totals.isLoading || week.isLoading
 
   const apptWeek = days.map((ymd) => {
-    const row = pickApptDay(yearAppt.buckets, ymd)
+    const row = pickApptDay(weekAppt, ymd)
     return { label: dayLabel(ymd), ...row }
   })
   const mailWeek = days.map((ymd) => {
-    const row = pickMailDay(yearMail.buckets, ymd)
+    const row = pickMailDay(weekMail, ymd)
     return { label: dayLabel(ymd), ...row }
   })
 
   return (
     <PageShell title="Today">
-      {overview.isError ? (
+      {totals.isError || week.isError ? (
         <Alert variant="destructive" className="mb-4 max-w-2xl">
           <AlertTitle>Could not load stats</AlertTitle>
         </Alert>
@@ -147,7 +149,7 @@ export function DashboardPage() {
             tone="chart-1"
             today={todayAppt.confirmed}
             year={yearAppt.confirmed}
-            loading={overview.isLoading}
+            loading={loading}
           />
           <MetricCard
             label="Cancelled"
@@ -155,7 +157,7 @@ export function DashboardPage() {
             tone="chart-2"
             today={todayAppt.cancelled}
             year={yearAppt.cancelled}
-            loading={overview.isLoading}
+            loading={loading}
           />
           <MetricCard
             label="Completed"
@@ -163,7 +165,7 @@ export function DashboardPage() {
             tone="chart-3"
             today={todayAppt.completed}
             year={yearAppt.completed}
-            loading={overview.isLoading}
+            loading={loading}
           />
           <MetricCard
             label="No-show"
@@ -171,7 +173,7 @@ export function DashboardPage() {
             tone="chart-4"
             today={todayAppt.noShow}
             year={yearAppt.noShow}
-            loading={overview.isLoading}
+            loading={loading}
           />
         </div>
         <Card className="mt-3">
@@ -179,7 +181,7 @@ export function DashboardPage() {
             <CardDescription>Last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
-            {overview.isLoading ? (
+            {loading ? (
               <Skeleton className="h-52 w-full rounded-lg" />
             ) : (
               <DashboardWeekChart
@@ -201,7 +203,7 @@ export function DashboardPage() {
             tone="chart-1"
             today={todayMail.sent}
             year={yearMail.notificationsSent}
-            loading={overview.isLoading}
+            loading={loading}
           />
           <MetricCard
             label="Failed"
@@ -209,7 +211,7 @@ export function DashboardPage() {
             tone="chart-2"
             today={todayMail.failed ?? 0}
             year={yearMail.failed ?? 0}
-            loading={overview.isLoading}
+            loading={loading}
           />
           <MetricCard
             label="Bounced"
@@ -217,7 +219,7 @@ export function DashboardPage() {
             tone="chart-3"
             today={todayMail.bounced ?? 0}
             year={yearMail.bounced ?? 0}
-            loading={overview.isLoading}
+            loading={loading}
           />
           <MetricCard
             label="Opened"
@@ -225,7 +227,7 @@ export function DashboardPage() {
             tone="chart-4"
             today={todayMail.opened}
             year={yearMail.opened}
-            loading={overview.isLoading}
+            loading={loading}
           />
         </div>
         <Card className="mt-3">
@@ -233,7 +235,7 @@ export function DashboardPage() {
             <CardDescription>Last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
-            {overview.isLoading ? (
+            {loading ? (
               <Skeleton className="h-52 w-full rounded-lg" />
             ) : (
               <DashboardWeekChart
@@ -247,6 +249,15 @@ export function DashboardPage() {
       </section>
     </PageShell>
   )
+}
+
+async function loadDash(params: Record<string, string | number | undefined>) {
+  try {
+    return await apiGet<DashboardStats>('/api/v1/dashboard/stats', params)
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return emptyDash
+    throw e
+  }
 }
 
 function pickApptDay(

@@ -13,7 +13,10 @@ export function notificationBounced(note?: Pick<Notification, 'bounced' | 'event
   return (
     note.bounced ||
     (note.events?.some(
-      (event) => event.eventType === 'SOFT_BOUNCE' || event.eventType === 'HARD_BOUNCE',
+      (event) =>
+        event.eventType === 'SOFT_BOUNCE' ||
+        event.eventType === 'HARD_BOUNCE' ||
+        event.eventType === 'BLOCKED',
     ) ??
       false)
   )
