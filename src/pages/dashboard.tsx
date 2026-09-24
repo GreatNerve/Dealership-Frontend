@@ -252,15 +252,16 @@ export function DashboardPage() {
 function pickApptDay(
   rows: AppointmentDailyStats[] | undefined,
   ymd: string,
-): AppointmentStats {
+): { confirmed: number; cancelled: number; completed: number; noShow: number } {
   const row = rows?.find((r) => String(r.date).slice(0, 10) === ymd)
-  if (!row) return emptyAppt
+  if (!row) {
+    return { confirmed: 0, cancelled: 0, completed: 0, noShow: 0 }
+  }
   return {
     confirmed: row.confirmed,
     cancelled: row.cancelled,
     completed: row.completed,
     noShow: row.noShow,
-    buckets: [],
   }
 }
 
