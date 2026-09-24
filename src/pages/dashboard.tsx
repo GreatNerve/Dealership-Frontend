@@ -83,13 +83,17 @@ export function DashboardPage() {
   const tz = user?.homeDealership?.timezone ?? 'UTC'
   const today = todayYmd(tz)
   const yearStart = `${today.slice(0, 4)}-01-01`
+  const yearEnd = `${today.slice(0, 4)}-12-31`
   const weekStart = shiftYmd(today, -6)
   const days = useMemo(() => weekYmds(today), [today])
-  const yearRange = useMemo(() => zonedDayRange(yearStart, today, tz), [yearStart, today, tz])
+  const yearRange = useMemo(
+    () => zonedDayRange(yearStart, yearEnd, tz),
+    [yearStart, yearEnd, tz],
+  )
   const weekRange = useMemo(() => zonedDayRange(weekStart, today, tz), [weekStart, today, tz])
 
   const totals = useQuery({
-    queryKey: ['dashboard', 'totals', user?.id, today, tz],
+    queryKey: ['dashboard', 'totals', user?.id, yearStart, tz],
     enabled: staff && !!user?.homeDealershipId,
     staleTime: 30_000,
     queryFn: () => loadDash(yearRange),
