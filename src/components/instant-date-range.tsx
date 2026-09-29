@@ -15,6 +15,8 @@ type Props = {
   onFromYmd: (value: string) => void
   onToYmd: (value: string) => void
   timeZone: string
+  label?: string
+  showToday?: boolean
 }
 
 function ymdToDate(ymd: string): Date | undefined {
@@ -46,6 +48,8 @@ export function InstantDateRange({
   onFromYmd,
   onToYmd,
   timeZone,
+  label = 'Dates',
+  showToday = true,
 }: Props) {
   const [open, setOpen] = useState(false)
   const selected = useMemo<DateRange | undefined>(() => {
@@ -65,7 +69,7 @@ export function InstantDateRange({
   return (
     <div className="flex flex-wrap items-end gap-2">
       <Field className="w-auto gap-1">
-        <FieldLabel className="text-[11px] text-muted-foreground">Dates</FieldLabel>
+        <FieldLabel className="text-[11px] text-muted-foreground">{label}</FieldLabel>
         <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           type="button"
@@ -124,19 +128,21 @@ export function InstantDateRange({
         </PopoverContent>
         </Popover>
       </Field>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-8"
-        onClick={() => {
-          const today = todayYmd(timeZone)
-          onFromYmd(today)
-          onToYmd(today)
-        }}
-      >
-        Today
-      </Button>
+      {showToday ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8"
+          onClick={() => {
+            const today = todayYmd(timeZone)
+            onFromYmd(today)
+            onToYmd(today)
+          }}
+        >
+          Today
+        </Button>
+      ) : null}
     </div>
   )
 }

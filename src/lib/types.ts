@@ -173,6 +173,40 @@ export type DashboardStats = {
   notifications: NotificationStats
 }
 
+export type WeekdayHours = {
+  weekday: number
+  closed: boolean
+  openTime: string | null
+  closeTime: string | null
+}
+
+export type DealershipSchedule = {
+  defaultCapacity: number
+  slotDurationMinutes: number
+  maxAdvanceDays: number
+  hours: WeekdayHours[]
+}
+
+export type CapacityOverride = {
+  id: string
+  fromDate: string
+  toDate: string
+  fromTime: string | null
+  toTime: string | null
+  capacity: number
+}
+
+export type ServiceSlot = {
+  start: string
+  capacity: number
+  booked: number
+  available: number
+}
+
+export type ServiceSlotsPage = {
+  items: ServiceSlot[]
+}
+
 export type Page<T> = {
   items: T[]
   page: number

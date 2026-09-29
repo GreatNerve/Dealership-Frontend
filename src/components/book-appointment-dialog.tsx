@@ -4,9 +4,8 @@ import { toast } from 'sonner'
 import { AddVehicleDialog } from '@/components/add-vehicle-dialog'
 import { apiPost } from '@/lib/api'
 import { dealershipLabel, dealershipSubline, vehicleLabel } from '@/lib/labels'
-import { datetimeLocalToApiOffset, defaultDatetimeLocal } from '@/lib/schedule'
 import type { Appointment, Customer, Dealership, Vehicle } from '@/lib/types'
-import { DateTimePickerField } from '@/components/forms/date-time-picker-field'
+import { ServiceSlotPicker } from '@/components/service-slot-picker'
 import { SearchableCombobox } from '@/components/forms/searchable-combobox'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,7 +46,7 @@ export function BookAppointmentDialog({
   const [addVehicleOpen, setAddVehicleOpen] = useState(false)
   const [vehicleId, setVehicleId] = useState('')
   const [dealershipId, setDealershipId] = useState('')
-  const [scheduledLocal, setScheduledLocal] = useState('')
+  const [slotStart, setSlotStart] = useState<string | null>(null)
 
   const bookingVehicles = useMemo(
     () => mergeVehicles(customer.vehicles, addedVehicles),
@@ -79,7 +78,7 @@ export function BookAppointmentDialog({
     setAddVehicleOpen(false)
     setVehicleId(customer.vehicles[0]?.id ?? '')
     setDealershipId(defaultDealershipId ?? dealerships[0]?.id ?? '')
-    setScheduledLocal(defaultDatetimeLocal(24))
+    setSlotStart(null)
   }, [open, customer.vehicles, defaultDealershipId, dealerships])
 
   useEffect(() => {
@@ -89,16 +88,19 @@ export function BookAppointmentDialog({
     }
   }, [open, bookingVehicles, vehicleId])
 
+  useEffect(() => {
+    setSlotStart(null)
+  }, [dealershipId])
+
   const book = useMutation({
     mutationFn: () => {
-      const scheduledAt = datetimeLocalToApiOffset(scheduledLocal)
       return apiPost<Appointment>(
         '/api/v1/appointments',
         {
           customerId: customer.id,
           vehicleId,
           dealershipId,
-          scheduledAt,
+          scheduledAt: slotStart,
           notify: true,
         },
         crypto.randomUUID(),
@@ -116,7 +118,7 @@ export function BookAppointmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="gap-1 border-b border-border px-6 pt-6 pb-4 pr-12">
           <DialogTitle className="text-lg">Create appointment</DialogTitle>
           <DialogDescription>
@@ -178,11 +180,14 @@ export function BookAppointmentDialog({
               />
             </Field>
 
-            <DateTimePickerField
-              id="book-scheduled-at"
-              value={scheduledLocal}
-              onChange={setScheduledLocal}
-            />
+            {dealershipId ? (
+              <ServiceSlotPicker
+                dealershipId={dealershipId}
+                timezone={dealerships.find((d) => d.id === dealershipId)?.timezone ?? 'UTC'}
+                value={slotStart}
+                onChange={setSlotStart}
+              />
+            ) : null}
           </FieldGroup>
         </div>
 
@@ -198,8 +203,7 @@ export function BookAppointmentDialog({
               book.isPending ||
               !vehicleId ||
               !dealershipId ||
-              !scheduledLocal ||
-              Number.isNaN(new Date(scheduledLocal).getTime())
+              !slotStart
             }
             onClick={() => book.mutate()}
           >

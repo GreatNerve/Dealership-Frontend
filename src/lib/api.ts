@@ -41,3 +41,17 @@ export async function apiPost<T>(
   })
   return data
 }
+
+export async function apiPut<T>(path: string, body?: unknown) {
+  const { data } = await http.put<T>(path, body)
+  return data
+}
+
+export async function apiPatch<T>(path: string, body?: unknown) {
+  const { data } = await http.patch<T>(path, body)
+  return data
+}
+
+export async function apiDelete(path: string) {
+  await http.delete(path)
+}

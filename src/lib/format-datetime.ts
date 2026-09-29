@@ -70,6 +70,22 @@ export function formatInstantInIanaZone(isoUtc: string, ianaZone: string): strin
   return formatWallClockFromIsoOffset(isoUtc) ?? isoUtc
 }
 
+/** Clock only (e.g. `9:00 AM`) in an IANA zone. */
+export function formatClockInIanaZone(isoUtc: string, ianaZone: string): string {
+  const instant = parseISO(isoUtc)
+  if (!isValid(instant)) return isoUtc
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: ianaZone,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(instant)
+  } catch {
+    return formatInstantInIanaZone(isoUtc, ianaZone)
+  }
+}
+
 /** Delivery Event `occurredAt`. Year ~58699 means millis were stored as seconds. */
 export function providerOccurredAtIso(isoUtc: string): string {
   const padded = isoUtc.replace(/^\+(\d{5})-/, '+0$1-')

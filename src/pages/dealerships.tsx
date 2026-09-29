@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Dealership } from '@/lib/types'
+import { DealershipSchedulePanel } from '@/components/dealership-schedule-panel'
 
 export function DealershipsPage() {
   const { user } = useAuth()
@@ -61,21 +62,24 @@ export function DealershipsPage() {
       )}
 
       {dealership && (
-        <DetailPanel
-          title={dealership.name}
-          description="Read-only details for the shop tied to your staff login."
-          className="max-w-2xl"
-        >
-          <DetailField label="Name">{dealership.name}</DetailField>
-          <DetailField label="Address">
-            <span className="text-muted-foreground">{dealership.address}</span>
-          </DetailField>
-          <DetailField label="Timezone">
-            <Badge variant="outline" className="font-mono text-xs">
-              {dealership.timezone}
-            </Badge>
-          </DetailField>
-        </DetailPanel>
+        <>
+          <DetailPanel
+            title={dealership.name}
+            description="Shop tied to your staff login."
+            className="max-w-4xl"
+          >
+            <DetailField label="Name">{dealership.name}</DetailField>
+            <DetailField label="Address">
+              <span className="text-muted-foreground">{dealership.address}</span>
+            </DetailField>
+            <DetailField label="Timezone">
+              <Badge variant="outline" className="font-mono text-xs">
+                {dealership.timezone}
+              </Badge>
+            </DetailField>
+          </DetailPanel>
+          <DealershipSchedulePanel dealershipId={dealership.id} />
+        </>
       )}
 
       {!homeId && <AddDealershipDialog open={addOpen} onOpenChange={setAddOpen} />}

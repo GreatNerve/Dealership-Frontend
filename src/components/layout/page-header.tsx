@@ -5,6 +5,7 @@ const labels: Record<string, string> = {
   appointments: 'Appointments',
   notifications: 'Notifications',
   customers: 'Customers',
+  calendar: 'Calendar',
   dealerships: 'My dealership',
   vehicles: 'My vehicles',
   profile: 'Profile',

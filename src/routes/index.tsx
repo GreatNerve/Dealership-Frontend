@@ -12,6 +12,7 @@ import { AppointmentsPage } from '@/pages/appointments'
 import { AppointmentDetailPage } from '@/pages/appointment-detail'
 import { DashboardPage } from '@/pages/dashboard'
 import { DealershipsPage } from '@/pages/dealerships'
+import { CalendarPage } from '@/pages/calendar'
 import { NotificationsPage } from '@/pages/notifications'
 import { NotificationDetailPage } from '@/pages/notification-detail'
 import { VehiclesPage } from '@/pages/vehicles'
@@ -55,6 +56,7 @@ export function AppRouter() {
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/notifications/:id" element={<NotificationDetailPage />} />
               <Route path="/customers" element={<Navigate to="/appointments" replace />} />
+              <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/dealerships" element={<DealershipsPage />} />
               <Route path="/vehicles" element={<VehiclesPage />} />
               <Route path="/profile" element={<ProfilePage />} />

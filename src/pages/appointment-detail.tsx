@@ -2,14 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Building2, CalendarClock, Car, Mail } from 'lucide-react'
 import { UserAvatar } from '@/components/user-avatar'
 import { Link, useParams } from 'react-router-dom'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { apiGet, apiPost, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { loadAppointmentMails } from '@/lib/prefetch'
 import type { Appointment, AppointmentStatus, Notification, Page, ReminderItem } from '@/lib/types'
 import { AppointmentStatusBadge } from '@/components/appointment-status-badge'
-import { DateTimePickerField } from '@/components/forms/date-time-picker-field'
+import { RescheduleAppointmentDialog } from '@/components/reschedule-appointment-dialog'
 import { DetailField, DetailPanel } from '@/components/layout/detail-field'
 import { PageShell } from '@/components/layout/page-shell'
 import {
@@ -28,14 +28,7 @@ import {
 } from '@/components/reminder-schedule-timeline'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  apiToDatetimeLocal,
-  datetimeLocalSameInstant,
-  datetimeLocalToApiOffset,
-  isFutureDatetimeLocal,
-} from '@/lib/schedule'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from 'cn'
 
@@ -106,7 +99,7 @@ export function AppointmentDetailPage() {
   const { user } = useAuth()
   const qc = useQueryClient()
   const staff = user?.role === 'DEALERSHIP_STAFF'
-  const [rescheduleLocal, setRescheduleLocal] = useState('')
+  const [rescheduleOpen, setRescheduleOpen] = useState(false)
   const [replayingId, setReplayingId] = useState<string | null>(null)
   const [sendMailOpen, setSendMailOpen] = useState(false)
   const mailWatchMs = () => {
@@ -136,14 +129,8 @@ export function AppointmentDetailPage() {
   })
 
   useEffect(() => {
-    // Leave empty until the user picks a new future time (same Instant is rejected by API).
-    setRescheduleLocal('')
+    setRescheduleOpen(false)
   }, [appt.data?.id])
-
-  const currentVisitLocal = useMemo(() => {
-    if (!appt.data) return ''
-    return apiToDatetimeLocal(appt.data.scheduledAtLocal || appt.data.scheduledAt)
-  }, [appt.data])
 
   const cancel = useMutation({
     mutationFn: () => apiPost<Appointment>(`/api/v1/appointments/${id}/cancel`),
@@ -170,25 +157,6 @@ export function AppointmentDetailPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   })
-
-  const reschedule = useMutation({
-    mutationFn: () =>
-      apiPost<Appointment>(`/api/v1/appointments/${id}/reschedule`, {
-        scheduledAt: datetimeLocalToApiOffset(rescheduleLocal),
-      }),
-    onSuccess: () => {
-      toast.success('Rescheduled')
-      qc.invalidateQueries({ queryKey: ['appointment', user?.id, id] })
-      qc.invalidateQueries({ queryKey: ['appointments'] })
-      qc.invalidateQueries({ queryKey: ['reminders', user?.id, id] })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-
-  const canSubmitReschedule =
-    !!rescheduleLocal &&
-    isFutureDatetimeLocal(rescheduleLocal) &&
-    !datetimeLocalSameInstant(rescheduleLocal, currentVisitLocal)
 
   const replayNotification = useMutation({
     mutationFn: (notificationId: string) => {
@@ -489,44 +457,34 @@ export function AppointmentDetailPage() {
             className={cn('lg:sticky lg:top-20')}
           >
             {canAct ? (
-              <FieldGroup className="gap-5">
-                <DateTimePickerField
-                  id="reschedule"
-                  value={rescheduleLocal}
-                  onChange={setRescheduleLocal}
-                  disablePast
-                />
-                <div className="flex flex-col gap-2">
-                  {staff ? (
-                    <Button
-                      className="w-full"
-                      disabled={complete.isPending}
-                      onClick={() => complete.mutate()}
-                    >
-                      {complete.isPending ? <Spinner data-icon="inline-start" /> : null}
-                      Mark complete
-                    </Button>
-                  ) : null}
+              <div className="flex flex-col gap-2">
+                {staff ? (
                   <Button
                     className="w-full"
-                    variant={staff ? 'outline' : 'default'}
-                    disabled={!canSubmitReschedule || reschedule.isPending}
-                    onClick={() => reschedule.mutate()}
+                    disabled={complete.isPending}
+                    onClick={() => complete.mutate()}
                   >
-                    {reschedule.isPending ? <Spinner data-icon="inline-start" /> : null}
-                    Reschedule
+                    {complete.isPending ? <Spinner data-icon="inline-start" /> : null}
+                    Mark complete
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full border-destructive/30 text-destructive hover:bg-destructive/5 hover:text-destructive"
-                    disabled={cancel.isPending}
-                    onClick={() => cancel.mutate()}
-                  >
-                    {cancel.isPending ? <Spinner data-icon="inline-start" /> : null}
-                    Cancel visit
-                  </Button>
-                </div>
-              </FieldGroup>
+                ) : null}
+                <Button
+                  className="w-full"
+                  variant={staff ? 'outline' : 'default'}
+                  onClick={() => setRescheduleOpen(true)}
+                >
+                  Reschedule
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full border-destructive/30 text-destructive hover:bg-destructive/5 hover:text-destructive"
+                  disabled={cancel.isPending}
+                  onClick={() => cancel.mutate()}
+                >
+                  {cancel.isPending ? <Spinner data-icon="inline-start" /> : null}
+                  Cancel visit
+                </Button>
+              </div>
             ) : (
               <p className="text-sm leading-relaxed text-muted-foreground">
                 This visit is{' '}
@@ -539,6 +497,15 @@ export function AppointmentDetailPage() {
           </DetailPanel>
         </div>
       </div>
+      {canAct && location ? (
+        <RescheduleAppointmentDialog
+          appointment={a}
+          timezone={location.timezone}
+          staff={staff}
+          open={rescheduleOpen}
+          onOpenChange={setRescheduleOpen}
+        />
+      ) : null}
       {staff ? (
         <SendMailDialog open={sendMailOpen} onOpenChange={setSendMailOpen} appointment={a} />
       ) : null}
