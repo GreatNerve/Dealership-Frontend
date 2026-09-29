@@ -162,6 +162,21 @@ function zoneOffsetMs(date: Date, timeZone: string): number {
   return asUtc - date.getTime()
 }
 
+/** ISO-8601 with the IANA zone offset (slot JSON is UTC `Z`). */
+export function isoWithZoneOffset(isoUtc: string, timeZone: string): string {
+  const date = parseISO(isoUtc)
+  if (!isValid(date)) return isoUtc
+  const offsetMs = zoneOffsetMs(date, timeZone)
+  const local = new Date(date.getTime() + offsetMs)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const stamp = `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}T${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`
+  const totalMin = Math.round(offsetMs / 60000)
+  if (totalMin === 0) return `${stamp}Z`
+  const sign = totalMin >= 0 ? '+' : '-'
+  const abs = Math.abs(totalMin)
+  return `${stamp}${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`
+}
+
 /** UTC Instant of a local wall time in an IANA zone. */
 export function instantAtZoneLocal(ymd: string, timeZone: string, hm = '00:00:00'): Date {
   const [year, month, day] = ymd.split('-').map(Number)

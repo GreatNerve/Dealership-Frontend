@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { AddVehicleDialog } from '@/components/add-vehicle-dialog'
 import { apiPost } from '@/lib/api'
 import { dealershipLabel, dealershipSubline, vehicleLabel } from '@/lib/labels'
+import { isoWithZoneOffset } from '@/lib/format-datetime'
 import type { Appointment, Customer, Dealership, Vehicle } from '@/lib/types'
 import { ServiceSlotPicker } from '@/components/service-slot-picker'
 import { SearchableCombobox } from '@/components/forms/searchable-combobox'
@@ -94,13 +95,14 @@ export function BookAppointmentDialog({
 
   const book = useMutation({
     mutationFn: () => {
+      const tz = dealerships.find((d) => d.id === dealershipId)?.timezone ?? 'UTC'
       return apiPost<Appointment>(
         '/api/v1/appointments',
         {
           customerId: customer.id,
           vehicleId,
           dealershipId,
-          scheduledAt: slotStart,
+          scheduledAt: isoWithZoneOffset(slotStart!, tz),
           notify: true,
         },
         crypto.randomUUID(),

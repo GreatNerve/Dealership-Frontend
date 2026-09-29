@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { apiPost } from '@/lib/api'
+import { isoWithZoneOffset } from '@/lib/format-datetime'
 import type { Appointment } from '@/lib/types'
 import { ServiceSlotPicker } from '@/components/service-slot-picker'
 import { Button } from '@/components/ui/button'
@@ -41,7 +42,7 @@ export function RescheduleAppointmentDialog({
   const reschedule = useMutation({
     mutationFn: () =>
       apiPost<Appointment>(`/api/v1/appointments/${appointment.id}/reschedule`, {
-        scheduledAt: slotStart,
+        scheduledAt: isoWithZoneOffset(slotStart!, timezone),
       }),
     onSuccess: () => {
       toast.success('Rescheduled')
