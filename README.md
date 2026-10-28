@@ -21,9 +21,6 @@ Auth: `/login`, `/register` (chooser), `/register/customer`, `/register/dealersh
 
 Optional: set `VITE_API_BASE` in `.env` if the API is on another host (then configure CORS on the backend).
 
-## Demo logins
+## Accounts
 
-| Email | Password | Role |
-|-------|----------|------|
-| `staff@greatnerve.com` | `password1` | Staff (customer directory, appointments, reminders) |
-| `customer@greatnerve.com` | `password1` | Customer (own appointments, vehicles) |
+No demo accounts are provided. Register a Customer at `/register/customer` or a Dealership (Staff) at `/register/dealership`, then sign in with those credentials.
