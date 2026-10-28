@@ -1,6 +1,6 @@
 /** Shared input placeholders across auth and CRUD forms. */
 export const formPlaceholders = {
-  customerName: 'Dheeraj Sharma',
+  customerName: 'Jane Doe',
   email: 'you@example.com',
   workEmail: 'staff@yourshop.com',
   passwordNew: 'Min. 8 characters',
